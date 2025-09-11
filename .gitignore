@@ -17,6 +17,9 @@ logs/
 # Editor directories and files
 .idea/
 .vscode/
+.cursor/
+.codebuddy/
+.cloudstudio/
 *.suo
 *.ntvs*
 *.njsproj

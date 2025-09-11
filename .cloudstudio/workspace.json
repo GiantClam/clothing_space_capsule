@@ -1,44 +1,35 @@
 {
-  "name": "clothing-space-capsule",
+  "name": "clothing-space-capsule-api",
   "image": "node:18",
-  "settings": {
-    "ports": [
-      {
-        "port": 4001,
-        "protocol": "http",
-        "visibility": "public",
-        "label": "API Server"
-      }
-    ],
-    "tasks": {
-      "init": {
-        "command": "npm install && npx prisma generate",
-        "runOn": "create"
-      },
-      "dev": {
-        "command": "npm run dev",
-        "isBackground": true
-      }
+  "ports": [
+    {
+      "port": 4001,
+      "name": "API Server",
+      "protocol": "http",
+      "visibility": "public"
+    }
+  ],
+  "tasks": {
+    "init": {
+      "name": "安装依赖",
+      "command": "cd api-server && npm install",
+      "openFiles": ["api-server/src/app.js"]
     },
-    "customizations": {
-      "vscode": {
-        "extensions": [
-          "dbaeumer.vscode-eslint",
-          "prisma.prisma"
-        ]
-      }
-    },
-    "persistentStorage": {
-      "size": "10Gi",
-      "mountPath": "/workspace/storage"
-    },
-    "security": {
-      "network": "public",
-      "automaticAuthentication": false
+    "start": {
+      "name": "启动API服务器",
+      "command": "cd api-server && npm start",
+      "openFiles": ["api-server/src/app.js"]
     }
   },
-  "features": {
-    "git": true,
+  "settings": {
+    "nodeVersion": "18",
+    "nodePackageManager": "npm",
+    "preferredPort": 4001,
     "autoStart": true
+  },
+  "features": {
+    "nodejs": true,
+    "git": true,
+    "ports": true
   }
 }

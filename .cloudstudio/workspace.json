@@ -1,0 +1,44 @@
+{
+  "name": "clothing-space-capsule",
+  "image": "node:18",
+  "settings": {
+    "ports": [
+      {
+        "port": 4001,
+        "protocol": "http",
+        "visibility": "public",
+        "label": "API Server"
+      }
+    ],
+    "tasks": {
+      "init": {
+        "command": "npm install && npx prisma generate",
+        "runOn": "create"
+      },
+      "dev": {
+        "command": "npm run dev",
+        "isBackground": true
+      }
+    },
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "dbaeumer.vscode-eslint",
+          "prisma.prisma"
+        ]
+      }
+    },
+    "persistentStorage": {
+      "size": "10Gi",
+      "mountPath": "/workspace/storage"
+    },
+    "security": {
+      "network": "public",
+      "automaticAuthentication": false
+    }
+  },
+  "features": {
+    "git": true,
+    "autoStart": true
+  }
+}

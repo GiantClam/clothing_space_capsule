@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>配置调试</title>
+</head>
+<body>
+    <h1>配置存储调试</h1>
+    
+    <div>
+        <h2>测试配置保存和加载</h2>
+        <button onclick="testSave()">保存测试配置</button>
+        <button onclick="testLoad()">加载配置</button>
+        <button onclick="clearStorage()">清空存储</button>
+    </div>
+    
+    <div>
+        <h2>localStorage内容</h2>
+        <pre id="storage-content"></pre>
+    </div>
+    
+    <div>
+        <h2>解析后的配置</h2>
+        <pre id="parsed-config"></pre>
+    </div>
+
+    <script>
+        function testSave() {
+            const testConfig = {
+                runninghub: {
+                    apiKey: 'test-api-key',
+                    baseUrl: 'https://www.runninghub.cn',
+                    singleItemWorkflowId: 'single-123',
+                    topBottomWorkflowId: 'top-bottom-456'
+                },
+                wechat: {
+                    appId: 'test-app-id',
+                    appSecret: 'test-secret',
+                    token: 'test-token',
+                    encodingAESKey: 'test-aes-key'
+                },
+                server: {
+                    host: 'localhost',
+                    port: 3000
+                }
+            };
+            
+            localStorage.setItem('appConfig', JSON.stringify(testConfig));
+            alert('配置已保存');
+            displayStorage();
+        }
+        
+        function testLoad() {
+            try {
+                const configStr = localStorage.getItem('appConfig');
+                if (configStr) {
+                    const config = JSON.parse(configStr);
+                    document.getElementById('parsed-config').textContent = JSON.stringify(config, null, 2);
+                    
+                    // 检查关键字段
+                    const hasSingleItem = config.runninghub && config.runninghub.singleItemWorkflowId;
+                    const hasTopBottom = config.runninghub && config.runninghub.topBottomWorkflowId;
+                    
+                    if (hasSingleItem && hasTopBottom) {
+                        alert('✅ 配置加载成功，包含两个工作流ID');
+                    } else {
+                        alert('❌ 配置加载失败，缺少工作流ID字段');
+                    }
+                } else {
+                    alert('❌ 没有找到配置数据');
+                }
+            } catch (error) {
+                alert('❌ 解析配置失败: ' + error.message);
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('appConfig');
+            alert('存储已清空');
+            displayStorage();
+        }
+        
+        function displayStorage() {
+            const storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            document.getElementById('storage-content').textContent = JSON.stringify(storage, null, 2);
+        }
+        
+        // 页面加载时显示存储内容
+        displayStorage();
+    </script>
+</body>
+</html>

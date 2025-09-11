@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=clothing_capsule_db
+      - POSTGRES_USER=clothing_user
+      - POSTGRES_PASSWORD=clothing_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./api-server/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clothing_user -d clothing_capsule_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # API 服务器
+  api-server:
+    build: ./api-server
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - DATABASE_URL=postgresql://clothing_user:clothing_password@postgres:5432/clothing_capsule_db
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key_here}
+      - JWT_EXPIRES_IN=7d
+      - WECHAT_APP_ID=${WECHAT_APP_ID}
+      - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
+      - WECHAT_TOKEN=${WECHAT_TOKEN}
+      - RUNNINGHUB_API_URL=${RUNNINGHUB_API_URL:-https://runninghub.cn/api}
+      - RUNNINGHUB_API_KEY=${RUNNINGHUB_API_KEY}
+      - RUNNINGHUB_WEBHOOK_SECRET=${RUNNINGHUB_WEBHOOK_SECRET}
+      - COS_SECRET_ID=${COS_SECRET_ID}
+      - COS_SECRET_KEY=${COS_SECRET_KEY}
+      - COS_REGION=${COS_REGION:-ap-beijing}
+      - COS_BUCKET=${COS_BUCKET:-clothing-capsule-images}
+      - YOUZAN_CLIENT_ID=${YOUZAN_CLIENT_ID}
+      - YOUZAN_CLIENT_SECRET=${YOUZAN_CLIENT_SECRET}
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:4001}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    volumes:
+      - ./api-server/uploads:/app/uploads
+
+  # 本地服务器（保持兼容）
+  local-server:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,38 @@
+{
+  "name": "clothing-space-capsule",
+  "version": "1.0.0",
+  "description": "虚拟试衣 Electron 应用",
+  "main": "main.js",
+  "scripts": {
+    "electron": "electron .",
+    "start": "concurrently \"npm run server\" \"node start-electron.js\"",
+    "server": "node server/app.js",
+    "dev": "concurrently \"npm run server\" \"electron .\"",
+    "build": "electron-packager . ClothingSpaceCapsule --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "virtual-fitting",
+    "runninghub",
+    "comfyui"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^32.2.8",
+    "electron-packager": "^17.1.2",
+    "wait-on": "^8.0.4"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "qrcode": "^1.5.4"
+  },
+  "build": {}
+}

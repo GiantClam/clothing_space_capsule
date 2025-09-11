@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>配置存储测试</title>
+</head>
+<body>
+    <h1>配置存储测试</h1>
+    
+    <div>
+        <h2>测试配置保存和加载</h2>
+        <button onclick="testConfigSave()">测试保存配置</button>
+        <button onclick="testConfigLoad()">测试加载配置</button>
+        <button onclick="clearConfig()">清空配置</button>
+    </div>
+    
+    <div>
+        <h2>当前配置</h2>
+        <pre id="config-display"></pre>
+    </div>
+    
+    <div>
+        <h2>测试结果</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // 模拟AppState的配置管理
+        class TestAppState {
+            constructor() {
+                this.configCache = null;
+            }
+            
+            getConfig() {
+                if (this.configCache) {
+                    return this.configCache;
+                }
+                
+                try {
+                    const configStr = localStorage.getItem('appConfig');
+                    if (configStr) {
+                        this.configCache = JSON.parse(configStr);
+                        return this.configCache;
+                    }
+                } catch (error) {
+                    console.error('解析配置失败:', error);
+                }
+                
+                return {
+                    runninghub: {
+                        apiKey: '',
+                        baseUrl: 'https://www.runninghub.cn',
+                        singleItemWorkflowId: '',
+                        topBottomWorkflowId: ''
+                    },
+                    wechat: {
+                        appId: '',
+                        appSecret: '',
+                        token: '',
+                        encodingAESKey: ''
+                    },
+                    server: {
+                        host: 'localhost',
+                        port: 3000
+                    }
+                };
+            }
+            
+            setConfig(config) {
+                this.configCache = config;
+                localStorage.setItem('appConfig', JSON.stringify(config));
+            }
+        }
+        
+        const testAppState = new TestAppState();
+        
+        function testConfigSave() {
+            const testConfig = {
+                runninghub: {
+                    apiKey: 'test-api-key-123',
+                    baseUrl: 'https://www.runninghub.cn',
+                    singleItemWorkflowId: 'single-workflow-123',
+                    topBottomWorkflowId: 'top-bottom-workflow-456'
+                },
+                wechat: {
+                    appId: 'test-app-id',
+                    appSecret: 'test-secret',
+                    token: 'test-token',
+                    encodingAESKey: 'test-aes-key'
+                },
+                server: {
+                    host: 'localhost',
+                    port: 3000
+                }
+            };
+            
+            testAppState.setConfig(testConfig);
+            document.getElementById('test-results').innerHTML = '<p style="color: green;">✅ 配置保存成功</p>';
+            displayConfig();
+        }
+        
+        function testConfigLoad() {
+            const config = testAppState.getConfig();
+            const hasSingleItem = config.runninghub.singleItemWorkflowId === 'single-workflow-123';
+            const hasTopBottom = config.runninghub.topBottomWorkflowId === 'top-bottom-workflow-456';
+            
+            if (hasSingleItem && hasTopBottom) {
+                document.getElementById('test-results').innerHTML = '<p style="color: green;">✅ 配置加载成功，两个工作流ID都正确</p>';
+            } else {
+                document.getElementById('test-results').innerHTML = '<p style="color: red;">❌ 配置加载失败</p>';
+            }
+            displayConfig();
+        }
+        
+        function clearConfig() {
+            localStorage.removeItem('appConfig');
+            testAppState.configCache = null;
+            document.getElementById('test-results').innerHTML = '<p style="color: blue;">🗑️ 配置已清空</p>';
+            displayConfig();
+        }
+        
+        function displayConfig() {
+            const config = testAppState.getConfig();
+            document.getElementById('config-display').textContent = JSON.stringify(config, null, 2);
+        }
+        
+        // 页面加载时显示当前配置
+        displayConfig();
+    </script>
+</body>
+</html>

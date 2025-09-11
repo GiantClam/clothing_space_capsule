@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 设备表
+model Device {
+  id              String   @id @default(cuid())
+  macAddress      String   @unique @map("mac_address")
+  deviceName      String?  @map("device_name")
+  distributionId  String?  @map("distribution_id") // 有赞分销ID
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  users User[]
+  tasks Task[]
+
+  @@map("devices")
+}
+
+// 用户表
+model User {
+  id          String   @id @default(cuid())
+  openId      String   @unique @map("open_id")
+  deviceId    String   @map("device_id")
+  isVerified  Boolean  @default(false) @map("is_verified")
+  nickname    String?
+  avatar      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  device      Device   @relation(fields: [deviceId], references: [id])
+  tasks       Task[]
+  messages    WechatMessage[]
+
+  @@map("users")
+}
+
+// 衣服分类表
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?  @map("parent_id")
+  level     Int      @default(1) // 1: 一级分类, 2: 二级分类
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  clothes   Clothes[]
+
+  @@map("categories")
+}
+
+// 衣服表
+model Clothes {
+  id              String   @id @default(cuid())
+  categoryId      String   @map("category_id")
+  name            String
+  imageUrl        String   @map("image_url")
+  prompt          String
+  description     String?
+  price           Decimal? @db.Decimal(10, 2)
+  youzanProductId String?  @map("youzan_product_id") // 有赞商品ID
+  youzanUrl       String?  @map("youzan_url") // 有赞商品链接（备用）
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  category Category @relation(fields: [categoryId], references: [id])
+  tasks    Task[]
+
+  @@map("clothes")
+}
+
+// 任务表
+model Task {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  deviceId          String   @map("device_id")
+  clothesId         String   @map("clothes_id")
+  status            TaskStatus @default(PENDING)
+  runninghubTaskId  String?  @map("runninghub_task_id")
+  userPhotoUrl      String?  @map("user_photo_url")
+  resultUrl         String?  @map("result_url")
+  distributionUrl   String?  @map("distribution_url") // 生成的分销链接
+  errorMessage      String?  @map("error_message")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  user    User    @relation(fields: [userId], references: [id])
+  device  Device  @relation(fields: [deviceId], references: [id])
+  clothes Clothes @relation(fields: [clothesId], references: [id])
+
+  @@map("tasks")
+}
+
+// 微信消息表
+model WechatMessage {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  messageType String   @map("message_type") // text, image, link
+  content     String
+  sentAt      DateTime @default(now()) @map("sent_at")
+
+  // 关联
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("wechat_messages")
+}
+
+// 任务状态枚举
+enum TaskStatus {
+  PENDING     // 等待中
+  PROCESSING  // 处理中
+  COMPLETED   // 已完成
+  FAILED      // 失败
+  CANCELLED   // 已取消
+}

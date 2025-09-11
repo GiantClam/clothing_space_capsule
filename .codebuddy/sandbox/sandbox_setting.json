@@ -1,0 +1,20 @@
+{
+  "path": "d:\\private\\clothing_space_capsule\\api-server",
+  "desc": "Express API server for Clothing Space Capsule application (final config)",
+  "id": "057f88ff2a104cfe818f78db1462606c",
+  "data": {
+    "spaceKey": "057f88ff2a104cfe818f78db1462606c",
+    "connections": {
+      "webIDE": "https://057f88ff2a104cfe818f78db1462606c.codebuddy.cloudstudio.club",
+      "preview": "https://057f88ff2a104cfe818f78db1462606c--{port}.codebuddy.cloudstudio.club",
+      "api": "https://057f88ff2a104cfe818f78db1462606c--api.codebuddy.cloudstudio.club",
+      "pty": "https://057f88ff2a104cfe818f78db1462606c--pty.codebuddy.cloudstudio.club"
+    }
+  },
+  "config": {
+    "api": "https://057f88ff2a104cfe818f78db1462606c--api.codebuddy.cloudstudio.club",
+    "pty": "https://057f88ff2a104cfe818f78db1462606c--pty.codebuddy.cloudstudio.club",
+    "region": "ap-shanghai",
+    "spaceKey": "057f88ff2a104cfe818f78db1462606c"
+  }
+}

@@ -33,5 +33,5 @@ public/**/*.webp
 public/**/*.jpeg
 public/**/*.gif
 
-# Build output
-/dist/
+# Electron binaries
+/node_modules/electron/dist/

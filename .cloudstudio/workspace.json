@@ -1,0 +1,32 @@
+{
+  "name": "clothing-space-capsule",
+  "image": "node:18",
+  "ports": [
+    {
+      "name": "api-server",
+      "port": 4001,
+      "onAutoForward": "openPreview"
+    }
+  ],
+  "tasks": {
+    "deploy": {
+      "command": "bash .cloudstudio/deploy.sh",
+      "runOptions": {
+        "instanceLimit": 1
+      }
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-json",
+        "prisma.prisma",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "postCreateCommand": "cd api-server && npm install",
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  }
+}

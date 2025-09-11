@@ -26,6 +26,9 @@ logs/
 *.sln
 *.sw?
 
+# CloudBase local config (use environment variables instead)
+cloudbase/env.json
+cloudbase/.env
 # Uploads directory
 uploads/
 

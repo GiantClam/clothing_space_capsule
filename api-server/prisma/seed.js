@@ -15,11 +15,24 @@ async function main() {
 
   const createdCategories = [];
   for (const category of categories) {
-    const created = await prisma.category.upsert({
-      where: { name: category.name },
-      update: category,
-      create: category,
+    // 先检查是否存在同名分类
+    const existingCategory = await prisma.category.findFirst({
+      where: { name: category.name }
     });
+    
+    let created;
+    if (existingCategory) {
+      // 更新现有分类
+      created = await prisma.category.update({
+        where: { id: existingCategory.id },
+        data: category
+      });
+    } else {
+      // 创建新分类
+      created = await prisma.category.create({
+        data: category
+      });
+    }
     createdCategories.push(created);
   }
 
@@ -45,16 +58,27 @@ async function main() {
 
   const createdSubCategories = [];
   for (const subCategory of subCategories) {
-    const created = await prisma.category.upsert({
+    // 先检查是否存在同名同父级的分类
+    const existingSubCategory = await prisma.category.findFirst({
       where: { 
-        name_parentId: {
-          name: subCategory.name,
-          parentId: subCategory.parentId
-        }
-      },
-      update: subCategory,
-      create: subCategory,
+        name: subCategory.name,
+        parentId: subCategory.parentId
+      }
     });
+    
+    let created;
+    if (existingSubCategory) {
+      // 更新现有子分类
+      created = await prisma.category.update({
+        where: { id: existingSubCategory.id },
+        data: subCategory
+      });
+    } else {
+      // 创建新子分类
+      created = await prisma.category.create({
+        data: subCategory
+      });
+    }
     createdSubCategories.push(created);
   }
 
@@ -64,7 +88,7 @@ async function main() {
     {
       name: '经典黑色风衣',
       categoryId: createdSubCategories[0].id, // 男装外套
-      imageUrl: 'https://example.com/male-coat-1.jpg',
+      imageUrl: '/male/coats/coat1.jpg',
       prompt: 'a man wearing a classic black trench coat, elegant and stylish, high quality fashion photography',
       description: '经典黑色风衣，适合商务和休闲场合',
       price: 299.00,
@@ -74,7 +98,7 @@ async function main() {
     {
       name: '深蓝色西装外套',
       categoryId: createdSubCategories[0].id,
-      imageUrl: 'https://example.com/male-coat-2.jpg',
+      imageUrl: '/male/coats/coat2.jpg',
       prompt: 'a man wearing a navy blue blazer, professional and sophisticated, studio lighting',
       description: '深蓝色西装外套，商务正装首选',
       price: 399.00,
@@ -85,7 +109,7 @@ async function main() {
     {
       name: '黑色休闲裤',
       categoryId: createdSubCategories[1].id, // 男装裤子
-      imageUrl: 'https://example.com/male-pants-1.jpg',
+      imageUrl: '/male/pants/pants1.jpg',
       prompt: 'a man wearing black casual pants, comfortable and versatile, modern style',
       description: '黑色休闲裤，百搭实用',
       price: 199.00,
@@ -96,7 +120,7 @@ async function main() {
     {
       name: '米色羊毛大衣',
       categoryId: createdSubCategories[4].id, // 女装外套
-      imageUrl: 'https://example.com/female-coat-1.jpg',
+      imageUrl: '/female/coats/coat1.jpg',
       prompt: 'a woman wearing a beige wool coat, elegant and warm, winter fashion',
       description: '米色羊毛大衣，保暖又时尚',
       price: 599.00,
@@ -107,7 +131,7 @@ async function main() {
     {
       name: '黑色A字裙',
       categoryId: createdSubCategories[5].id, // 女装裙子
-      imageUrl: 'https://example.com/female-skirt-1.jpg',
+      imageUrl: '/female/skirts/skirt1.jpg',
       prompt: 'a woman wearing a black A-line skirt, classic and feminine, office wear',
       description: '黑色A字裙，职场女性必备',
       price: 159.00,
@@ -118,7 +142,7 @@ async function main() {
     {
       name: '碎花连衣裙',
       categoryId: createdSubCategories[7].id, // 女装连衣裙
-      imageUrl: 'https://example.com/female-dress-1.jpg',
+      imageUrl: '/female/dresses/dress1.jpg',
       prompt: 'a woman wearing a floral print dress, romantic and feminine, summer style',
       description: '碎花连衣裙，清新浪漫',
       price: 259.00,
@@ -127,16 +151,26 @@ async function main() {
   ];
 
   for (const cloth of clothes) {
-    await prisma.clothes.upsert({
+    // 先检查是否存在同名同分类的衣服
+    const existingCloth = await prisma.clothes.findFirst({
       where: { 
-        name_categoryId: {
-          name: cloth.name,
-          categoryId: cloth.categoryId
-        }
-      },
-      update: cloth,
-      create: cloth,
+        name: cloth.name,
+        categoryId: cloth.categoryId
+      }
     });
+    
+    if (existingCloth) {
+      // 更新现有衣服
+      await prisma.clothes.update({
+        where: { id: existingCloth.id },
+        data: cloth
+      });
+    } else {
+      // 创建新衣服
+      await prisma.clothes.create({
+        data: cloth
+      });
+    }
   }
 
   console.log('数据库初始化完成！');

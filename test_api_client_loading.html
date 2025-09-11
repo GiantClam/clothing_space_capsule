@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API客户端加载测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+        }
+        .success {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .error {
+            background-color: #ffeaea;
+            border-left-color: #f44336;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left-color: #ff9800;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API客户端加载测试</h1>
+        <p>此页面用于测试api-client.js是否能正确加载</p>
+        
+        <div id="results"></div>
+        
+        <h3>详细日志</h3>
+        <div id="log"></div>
+        
+        <button onclick="runTests()">重新运行测试</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+
+    <!-- 按照主应用的加载顺序 -->
+    <script src="api-client.js"></script>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showResult(message, type = 'success') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function runTests() {
+            clearLog();
+            log('🚀 开始API客户端加载测试...');
+            
+            // 测试1: 检查window对象中的API客户端
+            log('📦 测试1: 检查window对象中的API客户端');
+            log(`  window.ApiClient: ${typeof window.ApiClient}`);
+            log(`  window.apiClient: ${typeof window.apiClient}`);
+            log(`  window.apiClient存在: ${!!window.apiClient}`);
+            
+            if (window.apiClient) {
+                showResult('✅ window.apiClient 加载成功', 'success');
+                log('✅ API客户端实例存在');
+                
+                // 测试2: 检查API客户端属性
+                log('📋 测试2: 检查API客户端属性');
+                try {
+                    log(`  baseUrl: ${window.apiClient.baseUrl}`);
+                    log(`  token: ${window.apiClient.token ? '已设置' : '未设置'}`);
+                    log(`  deviceId: ${window.apiClient.deviceId ? '已设置' : '未设置'}`);
+                    log(`  initialized: ${window.apiClient.initialized}`);
+                    
+                    showResult('✅ API客户端属性正常', 'success');
+                } catch (error) {
+                    log(`❌ 检查API客户端属性失败: ${error.message}`);
+                    showResult('❌ API客户端属性检查失败: ' + error.message, 'error');
+                }
+                
+                // 测试3: 检查API客户端方法
+                log('🔧 测试3: 检查API客户端方法');
+                const methods = ['initialize', 'request', 'authenticateDevice', 'getClothingCategories', 'healthCheck'];
+                let methodsOk = true;
+                
+                methods.forEach(method => {
+                    if (typeof window.apiClient[method] === 'function') {
+                        log(`  ✅ ${method}: 方法存在`);
+                    } else {
+                        log(`  ❌ ${method}: 方法缺失`);
+                        methodsOk = false;
+                    }
+                });
+                
+                if (methodsOk) {
+                    showResult('✅ API客户端方法完整', 'success');
+                } else {
+                    showResult('❌ API客户端方法不完整', 'error');
+                }
+                
+                // 测试4: 测试初始化方法
+                log('🔄 测试4: 测试初始化方法');
+                try {
+                    window.apiClient.initialize().then(() => {
+                        log('✅ API客户端初始化成功');
+                        showResult('✅ API客户端初始化测试通过', 'success');
+                    }).catch(error => {
+                        log(`⚠️ API客户端初始化失败: ${error.message}`);
+                        showResult('⚠️ API客户端初始化失败（但这可能是正常的）: ' + error.message, 'warning');
+                    });
+                } catch (error) {
+                    log(`❌ 调用初始化方法失败: ${error.message}`);
+                    showResult('❌ 初始化方法调用失败: ' + error.message, 'error');
+                }
+                
+            } else if (window.ApiClient) {
+                showResult('⚠️ ApiClient类存在但实例缺失，尝试手动创建', 'warning');
+                log('⚠️ 发现ApiClient类但apiClient实例缺失');
+                
+                try {
+                    window.apiClient = new window.ApiClient();
+                    log('✅ 手动创建API客户端实例成功');
+                    showResult('✅ 手动创建API客户端成功', 'success');
+                } catch (error) {
+                    log(`❌ 手动创建API客户端失败: ${error.message}`);
+                    showResult('❌ 手动创建API客户端失败: ' + error.message, 'error');
+                }
+            } else {
+                showResult('❌ API客户端未加载 - api-client.js文件可能有问题', 'error');
+                log('❌ window.ApiClient 和 window.apiClient 都不存在');
+                log('🔍 可能的原因:');
+                log('  1. api-client.js 文件路径错误');
+                log('  2. api-client.js 文件语法错误');
+                log('  3. 脚本加载顺序问题');
+                log('  4. 网络加载问题');
+                
+                // 检查是否有JavaScript错误
+                log('📊 检查页面错误:');
+                if (window.console && window.console.error) {
+                    log('  控制台错误检查完成，请查看浏览器开发者工具');
+                }
+            }
+            
+            log('🏁 测试完成');
+        }
+
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', () => {
+            log('📄 页面加载完成');
+            setTimeout(runTests, 100); // 稍等一下确保所有脚本都加载完成
+        });
+
+        // 监听错误
+        window.addEventListener('error', (event) => {
+            log(`❌ JavaScript错误: ${event.message} (${event.filename}:${event.lineno})`);
+            showResult('❌ 检测到JavaScript错误，请查看控制台', 'error');
+        });
+    </script>
+</body>
+</html>

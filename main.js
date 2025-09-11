@@ -1,6 +1,34 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
+
+// 加载环境变量
+function loadEnvironmentVariables() {
+  const envPath = path.join(__dirname, '.env.local');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, value] = trimmedLine.split('=');
+        if (key && value) {
+          process.env[key.trim()] = value.trim();
+        }
+      }
+    });
+    console.log('✅ 环境变量加载成功:', {
+      API_BASE_URL: process.env.API_BASE_URL,
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT
+    });
+  } else {
+    console.warn('⚠️ .env.local 文件不存在，使用默认环境变量');
+  }
+}
+
+// 加载环境变量
+loadEnvironmentVariables();
 
 let mainWindow;
 
@@ -21,9 +49,24 @@ function createWindow() {
   // 加载主页面
   mainWindow.loadFile('renderer/index.html');
 
-  // 开发模式开关：环境变量或启动参数任一为真则打开 DevTools
-  const enableDevTools = process.env.NODE_ENV === 'development' || process.argv.includes('--devtools');
-  if (enableDevTools) {
+  // 开发模式开关：检查多种dev模式条件
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                       process.argv.includes('--devtools') ||
+                       process.argv.includes('--dev') ||
+                       process.argv.includes('dev') ||
+                       !app.isPackaged; // Electron未打包时视为开发模式
+  
+  console.log('🔧 开发模式检查:', {
+    NODE_ENV: process.env.NODE_ENV,
+    hasDevtoolsArg: process.argv.includes('--devtools'),
+    hasDevArg: process.argv.includes('--dev'),
+    isPackaged: app.isPackaged,
+    isDevelopment: isDevelopment,
+    args: process.argv
+  });
+  
+  if (isDevelopment) {
+    console.log('🛠️ 开发模式：自动打开DevTools');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
@@ -69,6 +112,20 @@ ipcMain.handle('get-mac-address', () => {
     console.error('获取MAC地址失败:', error);
     return '获取失败: ' + error.message;
   }
+});
+
+// 获取环境变量
+ipcMain.handle('get-env-var', (event, varName) => {
+  return process.env[varName] || null;
+});
+
+// 获取所有相关环境变量
+ipcMain.handle('get-app-config', () => {
+  return {
+    API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:4001',
+    NODE_ENV: process.env.NODE_ENV || 'development',
+    PORT: process.env.PORT || '4001'
+  };
 });
 
 // 应用就绪时创建窗口

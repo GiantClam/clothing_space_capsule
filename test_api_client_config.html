@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API客户端配置测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+        }
+        .success {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .error {
+            background-color: #ffeaea;
+            border-left-color: #f44336;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left-color: #ff9800;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .config-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            margin: 5px;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API客户端配置测试</h1>
+        <p>测试API客户端是否正确使用配置页面设置的服务器地址</p>
+        
+        <div class="config-section">
+            <h3>模拟配置设置</h3>
+            <div>
+                <label>服务器Host:</label>
+                <input type="text" id="server-host" value="localhost" />
+            </div>
+            <div>
+                <label>服务器Port:</label>
+                <input type="number" id="server-port" value="4001" />
+            </div>
+            <button onclick="updateConfig()">更新配置</button>
+        </div>
+        
+        <div>
+            <button onclick="testCurrentConfig()">测试当前配置</button>
+            <button onclick="testApiClientInit()">测试API客户端初始化</button>
+            <button onclick="testDifferentPorts()">测试不同端口</button>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <h3>详细日志</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // 模拟appState
+        class MockAppState {
+            constructor() {
+                this.configCache = null;
+            }
+            
+            getConfig() {
+                if (this.configCache) {
+                    return this.configCache;
+                }
+                
+                return {
+                    runninghub: {
+                        apiKey: '',
+                        baseUrl: 'https://www.runninghub.cn',
+                        singleItemWorkflowId: '',
+                        topBottomWorkflowId: ''
+                    },
+                    wechat: {
+                        appId: '',
+                        appSecret: '',
+                        token: '',
+                        encodingAESKey: ''
+                    },
+                    server: {
+                        host: 'localhost',
+                        port: 4001
+                    }
+                };
+            }
+            
+            setConfig(config) {
+                this.configCache = config;
+                localStorage.setItem('appConfig', JSON.stringify(config));
+            }
+        }
+
+        // 创建全局appState
+        const appState = new MockAppState();
+
+        // API客户端类（复制核心逻辑）
+        class ApiClient {
+            constructor() {
+                this.baseUrl = 'http://localhost:4001';
+                this.token = null;
+                this.deviceId = null;
+                this.initialized = false;
+                
+                log('🔧 API客户端已创建，等待初始化...');
+            }
+
+            async initialize() {
+                if (this.initialized) {
+                    return;
+                }
+                
+                try {
+                    log('🔄 开始初始化API客户端配置...');
+                    
+                    if (typeof appState !== 'undefined' && appState.getConfig) {
+                        const config = appState.getConfig();
+                        log('📄 获取到配置: ' + JSON.stringify({
+                            serverHost: config.server?.host || '未设置',
+                            serverPort: config.server?.port || '未设置'
+                        }));
+                        
+                        if (config.server && config.server.host && config.server.port) {
+                            const protocol = config.server.host.includes('localhost') || config.server.host.includes('127.0.0.1') ? 'http' : 'https';
+                            this.baseUrl = `${protocol}://${config.server.host}:${config.server.port}`;
+                            log('✅ 使用配置页面设置的服务器地址: ' + this.baseUrl);
+                        } else {
+                            log('⚠️ 配置页面中未设置服务器地址，使用默认地址: ' + this.baseUrl);
+                        }
+                    } else {
+                        log('⚠️ 无法获取全局应用状态，使用默认配置: ' + this.baseUrl);
+                    }
+                    
+                    this.initialized = true;
+                    log('🚀 API客户端初始化完成，目标地址: ' + this.baseUrl);
+                } catch (error) {
+                    log('❌ API客户端初始化失败，使用默认配置: ' + error.message);
+                    this.initialized = true;
+                }
+            }
+
+            async healthCheck() {
+                await this.initialize();
+                
+                try {
+                    log('📤 发起健康检查: GET ' + this.baseUrl + '/health');
+                    const response = await fetch(this.baseUrl + '/health');
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        log('✅ 健康检查成功: ' + JSON.stringify(data));
+                        return { success: true, data };
+                    } else {
+                        log('❌ 健康检查失败: ' + response.status + ' ' + response.statusText);
+                        return { success: false, error: `HTTP ${response.status}` };
+                    }
+                } catch (error) {
+                    log('❌ 健康检查错误: ' + error.message);
+                    return { success: false, error: error.message };
+                }
+            }
+        }
+
+        const apiClient = new ApiClient();
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showResult(message, type = 'success') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function updateConfig() {
+            const host = document.getElementById('server-host').value;
+            const port = parseInt(document.getElementById('server-port').value);
+            
+            const newConfig = appState.getConfig();
+            newConfig.server.host = host;
+            newConfig.server.port = port;
+            
+            appState.setConfig(newConfig);
+            
+            // 重置API客户端
+            apiClient.initialized = false;
+            
+            log(`📝 配置已更新: ${host}:${port}`);
+            showResult(`配置已更新为 ${host}:${port}`, 'success');
+        }
+
+        async function testCurrentConfig() {
+            try {
+                log('🔍 测试当前配置...');
+                const config = appState.getConfig();
+                log('当前配置: ' + JSON.stringify(config.server));
+                
+                const result = await apiClient.healthCheck();
+                if (result.success) {
+                    showResult('✅ 当前配置测试成功', 'success');
+                } else {
+                    showResult('❌ 当前配置测试失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                log('测试失败: ' + error.message);
+                showResult('❌ 测试失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testApiClientInit() {
+            try {
+                log('🔍 测试API客户端初始化...');
+                
+                // 重置初始化状态
+                apiClient.initialized = false;
+                
+                await apiClient.initialize();
+                
+                log('API客户端目标地址: ' + apiClient.baseUrl);
+                showResult('✅ API客户端初始化完成: ' + apiClient.baseUrl, 'success');
+            } catch (error) {
+                log('初始化失败: ' + error.message);
+                showResult('❌ 初始化失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testDifferentPorts() {
+            const ports = [4001, 4002, 3000];
+            
+            for (const port of ports) {
+                log(`🔍 测试端口 ${port}...`);
+                
+                // 更新配置
+                const config = appState.getConfig();
+                config.server.port = port;
+                appState.setConfig(config);
+                
+                // 重置API客户端
+                apiClient.initialized = false;
+                
+                const result = await apiClient.healthCheck();
+                if (result.success) {
+                    showResult(`✅ 端口 ${port} 测试成功`, 'success');
+                } else {
+                    showResult(`❌ 端口 ${port} 测试失败: ${result.error}`, 'error');
+                }
+            }
+        }
+
+        // 页面加载时的初始测试
+        window.addEventListener('load', () => {
+            log('🚀 API客户端配置测试工具已启动');
+            log('当前配置: ' + JSON.stringify(appState.getConfig().server));
+            
+            setTimeout(testCurrentConfig, 1000);
+        });
+    </script>
+</body>
+</html>

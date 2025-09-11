@@ -24,7 +24,7 @@ function checkServer() {
 function startElectron() {
     console.log('🚀 服务器已启动，正在启动Electron客户端...');
     
-    const electron = spawn('electron', ['.', '--devtools'], {
+    const electron = spawn('electron', ['.', '--dev', '--devtools'], {
         stdio: 'inherit',
         shell: true
     });

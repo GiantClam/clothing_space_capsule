@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试衣服加载问题</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>衣服加载调试工具</h1>
+        <p>这个工具专门用于调试"API Server 数据获取失败，使用本地数据"的问题</p>
+        
+        <div>
+            <button onclick="debugClothingLoad()">调试服装加载流程</button>
+            <button onclick="testApiConnection()">测试API连接</button>
+            <button onclick="testDeviceAuth()">测试设备认证</button>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // 模拟配置存储
+        let appConfig = {
+            server: {
+                host: 'localhost',
+                port: 4001
+            }
+        };
+
+        // 模拟全局状态
+        const appState = {
+            getConfig: () => appConfig,
+            setConfig: (config) => appConfig = config
+        };
+
+        // 创建API客户端实例 - 使用与实际应用相同的代码
+        class ApiClient {
+            constructor() {
+                this.baseUrl = 'http://localhost:4001';
+                this.token = null;
+                this.deviceId = null;
+                this.initialized = false;
+            }
+
+            async initialize() {
+                if (this.initialized) return;
+                
+                try {
+                    log('🔄 开始初始化API客户端配置...');
+                    
+                    if (typeof appState !== 'undefined' && appState.getConfig) {
+                        const config = appState.getConfig();
+                        log('📄 获取到配置: ' + JSON.stringify({
+                            serverHost: config.server?.host || '未设置',
+                            serverPort: config.server?.port || '未设置'
+                        }));
+                        
+                        if (config.server && config.server.host && config.server.port) {
+                            const protocol = config.server.host.includes('localhost') || 
+                                           config.server.host.includes('127.0.0.1') ? 'http' : 'https';
+                            this.baseUrl = `${protocol}://${config.server.host}:${config.server.port}`;
+                            log('✅ 使用配置页面设置的服务器地址: ' + this.baseUrl);
+                        } else {
+                            log('⚠️ 配置页面中未设置服务器地址，使用默认地址: ' + this.baseUrl);
+                        }
+                    }
+                    
+                    this.initialized = true;
+                    log('🚀 API客户端初始化完成，目标地址: ' + this.baseUrl);
+                } catch (error) {
+                    log('❌ API客户端初始化失败: ' + error.message);
+                    this.initialized = true;
+                }
+            }
+
+            async request(endpoint, options = {}) {
+                await this.initialize();
+                
+                const url = `${this.baseUrl}${endpoint}`;
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                if (this.token) {
+                    config.headers['Authorization'] = `Bearer ${this.token}`;
+                }
+
+                try {
+                    log(`📤 API请求: ${config.method || 'GET'} ${url}`);
+                    const response = await fetch(url, config);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        log(`❌ API请求失败 [${endpoint}]: ${response.status} ${response.statusText}`);
+                        log(`错误详情: ${JSON.stringify(data, null, 2)}`);
+                        throw new Error(data.error || `HTTP ${response.status}`);
+                    }
+
+                    log(`✅ API请求成功 [${endpoint}]: ${data.success ? '成功' : '失败'}`);
+                    return data;
+                } catch (error) {
+                    log(`❌ API 请求失败 [${endpoint}]: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            async authenticateDevice(macAddress, deviceName) {
+                const response = await this.request('/api/auth/device', {
+                    method: 'POST',
+                    body: JSON.stringify({ macAddress, deviceName })
+                });
+
+                if (response.success) {
+                    this.token = response.token;
+                    this.deviceId = response.device.id;
+                    return response;
+                }
+
+                throw new Error(response.error || '设备认证失败');
+            }
+
+            async getClothingCategories() {
+                return await this.request('/api/clothes/categories');
+            }
+
+            async getClothingByCategory(categoryId, params = {}) {
+                const queryString = new URLSearchParams(params).toString();
+                const endpoint = queryString ? 
+                    `/api/clothes/category/${categoryId}?${queryString}` : 
+                    `/api/clothes/category/${categoryId}`;
+                return await this.request(endpoint);
+            }
+        }
+
+        const apiClient = new ApiClient();
+        window.apiClient = apiClient;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('status').innerHTML = '';
+        }
+
+        async function testApiConnection() {
+            try {
+                log('🔍 开始测试API连接...');
+                await apiClient.initialize();
+                
+                const health = await apiClient.request('/health');
+                log('健康检查结果: ' + JSON.stringify(health, null, 2));
+                showStatus('✅ API连接测试通过', 'success');
+            } catch (error) {
+                log('API连接失败: ' + error.message);
+                showStatus('❌ API连接失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testDeviceAuth() {
+            try {
+                log('🔍 开始测试设备认证...');
+                const macAddress = 'debug-mac-' + Date.now();
+                const deviceName = '调试设备';
+                
+                const response = await apiClient.authenticateDevice(macAddress, deviceName);
+                log('设备认证结果: ' + JSON.stringify(response, null, 2));
+                showStatus('✅ 设备认证成功', 'success');
+            } catch (error) {
+                log('设备认证失败: ' + error.message);
+                showStatus('❌ 设备认证失败: ' + error.message, 'error');
+            }
+        }
+
+        async function debugClothingLoad() {
+            try {
+                log('🚀 开始调试服装加载流程...');
+                log('模拟客户端app.js中的loadClothingItems函数...');
+                
+                // 模拟当前状态
+                const activeCategory = 'tops-bottoms';
+                const activeGender = 'female';
+                const currentSubCategory = 'tops';
+                
+                log('👕 开始加载服装数据: ' + JSON.stringify({
+                    category: activeCategory,
+                    gender: activeGender,
+                    subCategory: currentSubCategory,
+                    hasApiClient: !!window.apiClient,
+                    hasToken: window.apiClient?.token ? '有token' : '无token'
+                }));
+                
+                // 首先尝试从 API Server 获取数据
+                let itemsToShow = [];
+                
+                if (window.apiClient && window.apiClient.token) {
+                    try {
+                        log('🔍 尝试从API服务器获取分类数据...');
+                        const categories = await window.apiClient.getClothingCategories();
+                        log('📂 获取到分类数据: ' + JSON.stringify(categories, null, 2));
+                        
+                        const genderCategory = categories.data.find(cat => 
+                            cat.name === (activeGender === 'male' ? '男装' : '女装')
+                        );
+                        log('👤 查找性别分类: ' + JSON.stringify({
+                            looking: activeGender === 'male' ? '男装' : '女装',
+                            found: !!genderCategory,
+                            available: categories.data.map(cat => cat.name)
+                        }));
+                        
+                        if (genderCategory) {
+                            let subCategoryId = null;
+                            
+                            if (activeCategory === 'tops-bottoms' && currentSubCategory) {
+                                const subCategoryName = currentSubCategory === 'tops' ? '外套' : '裤子';
+                                const subCategory = genderCategory.children.find(child => 
+                                    child.name === subCategoryName
+                                );
+                                subCategoryId = subCategory ? subCategory.id : null;
+                                log('🔍 查找子分类: ' + JSON.stringify({
+                                    looking: subCategoryName,
+                                    found: !!subCategory,
+                                    available: genderCategory.children.map(child => child.name),
+                                    subCategoryId
+                                }));
+                            }
+                            
+                            if (subCategoryId) {
+                                log('👔 获取分类服装数据: ' + subCategoryId);
+                                const clothesResponse = await window.apiClient.getClothingByCategory(subCategoryId);
+                                log('📦 获取到服装数据: ' + JSON.stringify(clothesResponse, null, 2));
+                                
+                                itemsToShow = clothesResponse.data.clothes.map(item => ({
+                                    id: item.id,
+                                    name: item.name,
+                                    image: item.imageUrl,
+                                    description: item.description,
+                                    prompt: item.prompt,
+                                    youzanUrl: item.youzanUrl
+                                }));
+                                log('✅ 映射后的服装数据: ' + itemsToShow.length + ' 件');
+                            } else {
+                                log('⚠️ 未找到对应的子分类ID');
+                            }
+                        } else {
+                            log('⚠️ 未找到对应的性别分类');
+                        }
+                    } catch (apiError) {
+                        log('❌ API服务器数据获取失败: ' + apiError.message);
+                    }
+                } else {
+                    log('⚠️ API客户端未准备好: ' + JSON.stringify({
+                        hasApiClient: !!window.apiClient,
+                        hasToken: window.apiClient?.token ? '有token' : '无token'
+                    }));
+                }
+                
+                // 如果 API Server 数据获取失败，回退到本地数据
+                if (itemsToShow.length === 0) {
+                    log('API Server 数据获取失败，使用本地数据');
+                    showStatus('⚠️ API Server 数据获取失败，使用本地数据', 'warning');
+                } else {
+                    log('✅ 成功从API Server获取到 ' + itemsToShow.length + ' 件服装');
+                    showStatus('✅ 成功从API Server获取服装数据', 'success');
+                }
+                
+                log('调试完成！');
+                
+            } catch (error) {
+                log('调试过程中发生错误: ' + error.message);
+                showStatus('❌ 调试失败: ' + error.message, 'error');
+            }
+        }
+
+        // 自动初始化
+        window.addEventListener('load', async () => {
+            log('🚀 调试工具已启动');
+            log('目标API服务器: ' + apiClient.baseUrl);
+            
+            // 自动测试API连接
+            setTimeout(testApiConnection, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单测试</title>
+</head>
+<body>
+    <h1>API连接测试</h1>
+    <div id="status">测试中...</div>
+    <div id="log"></div>
+
+    <script>
+        function log(msg) {
+            document.getElementById('log').innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + msg + '</div>';
+        }
+
+        async function test() {
+            try {
+                log('开始测试API服务器连接...');
+                
+                // 测试健康检查
+                const healthResponse = await fetch('http://localhost:4001/health');
+                const healthData = await healthResponse.json();
+                log('健康检查: ' + JSON.stringify(healthData));
+                
+                // 测试设备认证
+                const authResponse = await fetch('http://localhost:4001/api/auth/device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        macAddress: 'test-mac-' + Date.now(),
+                        deviceName: '测试设备'
+                    })
+                });
+                const authData = await authResponse.json();
+                log('设备认证: ' + JSON.stringify(authData));
+                
+                if (authData.success) {
+                    const token = authData.token;
+                    
+                    // 测试分类接口
+                    const categoriesResponse = await fetch('http://localhost:4001/api/clothes/categories', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const categoriesData = await categoriesResponse.json();
+                    log('分类接口: ' + JSON.stringify(categoriesData));
+                    
+                    // 测试服装列表接口
+                    const clothesResponse = await fetch('http://localhost:4001/api/clothes/list', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const clothesData = await clothesResponse.json();
+                    log('服装列表: ' + JSON.stringify(clothesData));
+                }
+                
+                document.getElementById('status').innerHTML = '<span style="color: green">✅ 测试完成</span>';
+            } catch (error) {
+                log('错误: ' + error.message);
+                document.getElementById('status').innerHTML = '<span style="color: red">❌ 测试失败</span>';
+            }
+        }
+
+        // 页面加载后自动开始测试
+        window.addEventListener('load', test);
+    </script>
+</body>
+</html>

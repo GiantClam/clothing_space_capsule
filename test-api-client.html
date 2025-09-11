@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API客户端加载测试</title>
+</head>
+<body>
+    <h1>API客户端加载测试</h1>
+    <div id="result"></div>
+
+    <script>
+        console.log('🧪 开始测试页面...');
+        
+        // 等待脚本加载完成后再检查
+        window.addEventListener('load', function() {
+            console.log('📄 页面加载完成，开始检查API客户端...');
+            
+            setTimeout(function() {
+                const resultDiv = document.getElementById('result');
+                
+                if (typeof window.ApiClient !== 'undefined') {
+                    console.log('✅ window.ApiClient 已定义');
+                    resultDiv.innerHTML += '<p>✅ window.ApiClient 已定义</p>';
+                } else {
+                    console.log('❌ window.ApiClient 未定义');
+                    resultDiv.innerHTML += '<p>❌ window.ApiClient 未定义</p>';
+                }
+                
+                if (typeof window.apiClient !== 'undefined') {
+                    console.log('✅ window.apiClient 已定义');
+                    resultDiv.innerHTML += '<p>✅ window.apiClient 已定义</p>';
+                } else {
+                    console.log('❌ window.apiClient 未定义');
+                    resultDiv.innerHTML += '<p>❌ window.apiClient 未定义</p>';
+                }
+                
+                console.log('🔍 window对象检查:', {
+                    ApiClient: typeof window.ApiClient,
+                    apiClient: typeof window.apiClient,
+                    hasWindow: typeof window !== 'undefined'
+                });
+            }, 100);
+        });
+    </script>
+    
+    <script src="renderer/api-client.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API客户端简单测试</title>
+</head>
+<body>
+    <h1>API客户端简单测试</h1>
+    <div id="result"></div>
+    <button onclick="testApiClient()">测试API客户端</button>
+
+    <script>
+        console.log('🧪 简单测试页面开始...');
+        
+        function testApiClient() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            console.log('🔍 检查window对象:');
+            console.log('- typeof window:', typeof window);
+            console.log('- typeof window.ApiClient:', typeof window.ApiClient);
+            console.log('- typeof window.apiClient:', typeof window.apiClient);
+            
+            if (typeof window.ApiClient !== 'undefined') {
+                resultDiv.innerHTML += '<p>✅ window.ApiClient 已定义</p>';
+                console.log('✅ window.ApiClient 已定义');
+            } else {
+                resultDiv.innerHTML += '<p>❌ window.ApiClient 未定义</p>';
+                console.log('❌ window.ApiClient 未定义');
+            }
+            
+            if (typeof window.apiClient !== 'undefined') {
+                resultDiv.innerHTML += '<p>✅ window.apiClient 已定义</p>';
+                console.log('✅ window.apiClient 已定义');
+                
+                // 尝试调用方法
+                try {
+                    console.log('🧪 测试 apiClient.initialize()');
+                    window.apiClient.initialize();
+                    resultDiv.innerHTML += '<p>✅ apiClient.initialize() 调用成功</p>';
+                } catch (error) {
+                    resultDiv.innerHTML += '<p>❌ apiClient.initialize() 调用失败: ' + error.message + '</p>';
+                    console.error('❌ apiClient.initialize() 调用失败:', error);
+                }
+            } else {
+                resultDiv.innerHTML += '<p>❌ window.apiClient 未定义</p>';
+                console.log('❌ window.apiClient 未定义');
+            }
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            console.log('📄 页面加载完成');
+            setTimeout(testApiClient, 500);
+        });
+    </script>
+    
+    <!-- 在页面底部加载脚本 -->
+    <script src="renderer/api-client.js"></script>
+</body>
+</html>

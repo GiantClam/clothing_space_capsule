@@ -27,7 +27,7 @@ router.get('/categories', async (req, res, next) => {
 
     res.json({
       success: true,
-      categories: topLevelCategories
+      data: topLevelCategories
     });
 
   } catch (error) {

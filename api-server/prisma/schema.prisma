@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -62,6 +62,8 @@ model Category {
   children  Category[] @relation("CategoryHierarchy")
   clothes   Clothes[]
 
+  // 唯一约束：同一父级下不能有同名分类
+  @@unique([name, parentId])
   @@map("categories")
 }
 
@@ -73,7 +75,7 @@ model Clothes {
   imageUrl        String   @map("image_url")
   prompt          String
   description     String?
-  price           Decimal? @db.Decimal(10, 2)
+  price           Float?
   youzanProductId String?  @map("youzan_product_id") // 有赞商品ID
   youzanUrl       String?  @map("youzan_url") // 有赞商品链接（备用）
   isActive        Boolean  @default(true) @map("is_active")
@@ -82,8 +84,11 @@ model Clothes {
 
   // 关联
   category Category @relation(fields: [categoryId], references: [id])
-  tasks    Task[]
+  topTasks Task[] @relation("TaskTopClothes")
+  bottomTasks Task[] @relation("TaskBottomClothes")
 
+  // 唯一约束：同一分类下不能有同名衣服
+  @@unique([name, categoryId])
   @@map("clothes")
 }
 
@@ -92,20 +97,26 @@ model Task {
   id                String   @id @default(cuid())
   userId            String   @map("user_id")
   deviceId          String   @map("device_id")
-  clothesId         String   @map("clothes_id")
-  status            TaskStatus @default(PENDING)
+  status            String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
   runninghubTaskId  String?  @map("runninghub_task_id")
   userPhotoUrl      String?  @map("user_photo_url")
+  userPhotoFilename String?  @map("user_photo_filename") // RunningHub返回的文件名
+  topClothesId      String?  @map("top_clothes_id")     // 上衣ID
+  bottomClothesId   String?  @map("bottom_clothes_id")  // 下衣ID
+  topClothesFilename String? @map("top_clothes_filename") // 上衣图片文件名
+  bottomClothesFilename String? @map("bottom_clothes_filename") // 下衣图片文件名
   resultUrl         String?  @map("result_url")
   distributionUrl   String?  @map("distribution_url") // 生成的分销链接
   errorMessage      String?  @map("error_message")
+  workflowId        String?  @map("workflow_id")      // 使用的工作流ID
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   // 关联
-  user    User    @relation(fields: [userId], references: [id])
-  device  Device  @relation(fields: [deviceId], references: [id])
-  clothes Clothes @relation(fields: [clothesId], references: [id])
+  user         User    @relation(fields: [userId], references: [id])
+  device       Device  @relation(fields: [deviceId], references: [id])
+  topClothes   Clothes? @relation("TaskTopClothes", fields: [topClothesId], references: [id])
+  bottomClothes Clothes? @relation("TaskBottomClothes", fields: [bottomClothesId], references: [id])
 
   @@map("tasks")
 }
@@ -124,11 +135,5 @@ model WechatMessage {
   @@map("wechat_messages")
 }
 
-// 任务状态枚举
-enum TaskStatus {
-  PENDING     // 等待中
-  PROCESSING  // 处理中
-  COMPLETED   // 已完成
-  FAILED      // 失败
-  CANCELLED   // 已取消
-}
+// 任务状态常量 (SQLite 使用 String 替代 enum)
+// 可选值: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED

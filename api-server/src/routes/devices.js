@@ -21,7 +21,7 @@ router.put('/distribution-id', authenticateDevice, [
     }
 
     const { distributionId } = req.body;
-    const { deviceId } = req.device;
+    const deviceId = req.device.id;
 
     // 更新设备分销ID
     const updatedDevice = await prisma.device.update({
@@ -51,7 +51,7 @@ router.put('/distribution-id', authenticateDevice, [
 // 获取设备分销ID
 router.get('/distribution-id', authenticateDevice, async (req, res) => {
   try {
-    const { deviceId } = req.device;
+    const deviceId = req.device.id;
 
     const device = await prisma.device.findUnique({
       where: { id: deviceId },

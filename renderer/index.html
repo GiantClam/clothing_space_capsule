@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>衣等舱 - AI试衣体验</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="api-client.js"></script>
 </head>
 <body>
     <!-- 页面容器 -->
@@ -244,6 +243,10 @@
                         <label>Port</label>
                         <input id="cfg-server-port" type="number" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
                     </div>
+                    <div class="field-group">
+                        <button type="button" onclick="testApiConnection()" style="margin-top:8px; padding:8px 16px; background:#17a2b8; color:white; border:none; border-radius:4px; cursor:pointer;">测试API连接</button>
+                        <div id="api-test-result" style="margin-top:8px; padding:8px; border-radius:4px; display:none;"></div>
+                    </div>
                 </div>
                 <div style="margin-bottom:16px">
                     <h3>设备信息</h3>
@@ -285,6 +288,21 @@
         </div>
     </div>
 
+    <script src="api-client.js"></script>
+    <script>
+        // 即时检查脚本加载状态
+        console.log('🔍 在内联脚本中检查 API 客户端加载状态:');
+        console.log('- typeof window.ApiClient:', typeof window.ApiClient);
+        console.log('- typeof window.apiClient:', typeof window.apiClient);
+        console.log('- window.ApiClient exists:', !!window.ApiClient);
+        console.log('- window.apiClient exists:', !!window.apiClient);
+        
+        if (!window.ApiClient && !window.apiClient) {
+            console.error('❌ 内联脚本检查: API客户端未加载');
+        } else {
+            console.log('✅ 内联脚本检查: API客户端已加载');
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

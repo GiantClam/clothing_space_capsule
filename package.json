@@ -5,9 +5,10 @@
   "main": "main.js",
   "scripts": {
     "electron": "electron .",
-    "start": "concurrently \"npm run server\" \"node start-electron.js\"",
+    "start": "concurrently \"npm run server\" \"npm run api-server\" \"node start-electron.js\"",
     "server": "node server/app.js",
-    "dev": "concurrently \"npm run server\" \"electron .\"",
+    "api-server": "cd api-server && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run api-server\" \"electron . --dev\"",
     "build": "electron-packager . ClothingSpaceCapsule --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

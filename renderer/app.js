@@ -15,8 +15,9 @@ class AppState {
         this.lastSelectionType = null; // 'topBottom' | 'dress'
         this.selectedStyle = null;
         this.currentTask = null;
+        this.currentTaskId = null; // API Server中的任务ID
         this.apiBaseUrl = 'http://localhost:3000'; // 本地服务器（保持兼容）
-        this.apiServerUrl = 'http://localhost:3001'; // 新的 API Server
+        this.apiServerUrl = 'http://localhost:4001'; // 新的 API Server
         this.currentGender = 'female';
         this.currentCategory = 'tops-bottoms';
         this.currentSubCategory = 'tops';
@@ -24,7 +25,7 @@ class AppState {
         this.configCache = null;
     }
 
-    setPage(pageId) {
+    async setPage(pageId) {
         // 隐藏当前页面
         const currentPageEl = document.getElementById(this.currentPage);
         if (currentPageEl) {
@@ -39,10 +40,10 @@ class AppState {
         }
 
         // 页面切换时的特殊处理
-        this.onPageChange(pageId);
+        await this.onPageChange(pageId);
     }
 
-    onPageChange(pageId) {
+    async onPageChange(pageId) {
         switch(pageId) {
             case 'profile-page':
                 this.initializeProfilePage();
@@ -52,7 +53,7 @@ class AppState {
                 initializeDeviceInfo();
                 break;
             case 'clothing-page':
-                this.initializeClothingPage();
+                await this.initializeClothingPage();
                 break;
             case 'results-page':
                 this.startFittingProcess();
@@ -81,7 +82,51 @@ class AppState {
         }
     }
 
-    initializeClothingPage() {
+    async initializeClothingPage() {
+        console.log('👕 初始化服装页面...');
+        
+        // 检查并等待API客户端初始化完成
+        if (!window.apiClient) {
+            console.log('⚠️ API客户端未初始化，等待初始化完成...');
+            
+            // 等待API客户端初始化，最多等待10秒
+            let attempts = 0;
+            const maxAttempts = 100; // 10秒，每100ms检查一次
+            
+            while (!window.apiClient && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (!window.apiClient) {
+                console.error('❌ API客户端初始化超时');
+                appState.showError('API客户端初始化失败，请刷新页面重试。');
+                return;
+            }
+        }
+        
+        // 确保API客户端已初始化
+        if (!window.apiClient.initialized) {
+            console.log('🔄 API客户端尚未初始化，执行初始化...');
+            try {
+                await window.apiClient.initialize();
+                console.log('✅ API客户端初始化完成');
+            } catch (error) {
+                console.error('❌ API客户端初始化失败:', error);
+            }
+        }
+        
+        // 检查设备认证状态
+        if (!window.apiClient.token) {
+            console.log('⚠️ 设备未认证，尝试进行认证...');
+            try {
+                // 在这里我们可以调用认证逻辑，但由于需要MAC地址，我们先跳过
+                console.log('设备认证需要在应用启动时完成，请检查初始化流程');
+            } catch (error) {
+                console.error('设备认证失败:', error);
+            }
+        }
+        
         // 根据用户档案设置当前性别
         this.currentGender = this.userProfile.gender;
         
@@ -90,7 +135,15 @@ class AppState {
         this.updateGenderTabState();
         
         this.setupCategoryTabs();
-        this.loadClothingItems();
+        
+        // 在调用loadClothingItems之前显示加载提示
+        const grid = document.getElementById('clothing-grid');
+        if (grid) {
+            grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">⚙️ 正在加载服装数据...</div>';
+        }
+        
+        // 加载服装数据
+        await this.loadClothingItems();
         this.updateCategoryNotice();
     }
 
@@ -214,86 +267,127 @@ class AppState {
         grid.innerHTML = '';
 
         try {
-            // 首先尝试从 API Server 获取数据
+            console.log('👕 开始从API服务器加载服装数据:', {
+                category: activeCategory,
+                gender: activeGender,
+                subCategory: this.currentSubCategory,
+                hasApiClient: !!window.apiClient,
+                hasToken: window.apiClient?.token ? '有token' : '无token'
+            });
+            
+            // 检查API客户端状态
+            if (!window.apiClient) {
+                throw new Error('API客户端未初始化，请检查 api-client.js 是否正确加载');
+            }
+            
+            if (!window.apiClient.token) {
+                throw new Error('设备认证失败，无法获取服装数据。请检查API服务器连接状态');
+            }
+            
+            // 从 API Server 获取数据
             let itemsToShow = [];
             
-            if (window.apiClient && window.apiClient.token) {
-                // 从 API Server 获取分类和衣服数据
+            try {
+                console.log('🔍 尝试从API服务器获取分类数据...');
                 const categories = await window.apiClient.getClothingCategories();
+                console.log('📂 获取到分类数据:', categories);
+                
                 const genderCategory = categories.data.find(cat => 
                     cat.name === (activeGender === 'male' ? '男装' : '女装')
                 );
+                console.log('👤 查找性别分类:', {
+                    looking: activeGender === 'male' ? '男装' : '女装',
+                    found: !!genderCategory,
+                    available: categories.data.map(cat => cat.name)
+                });
                 
-                if (genderCategory) {
-                    let subCategoryId = null;
-                    
-                    if (activeCategory === 'tops-bottoms' && this.currentSubCategory) {
-                        // 查找对应的子分类
-                        const subCategoryName = this.currentSubCategory === 'tops' ? '外套' : '裤子';
-                        const subCategory = genderCategory.children.find(child => 
-                            child.name === subCategoryName
-                        );
-                        subCategoryId = subCategory ? subCategory.id : null;
-                    } else if (activeCategory === 'dresses') {
-                        // 查找裙子子分类
-                        const subCategory = genderCategory.children.find(child => 
-                            child.name === '连衣裙' || child.name === '裙子'
-                        );
-                        subCategoryId = subCategory ? subCategory.id : null;
-                    }
-                    
-                    if (subCategoryId) {
-                        const clothesResponse = await window.apiClient.getClothingByCategory(subCategoryId);
-                        itemsToShow = clothesResponse.data.clothes.map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            image: item.imageUrl,
-                            description: item.description,
-                            prompt: item.prompt,
-                            youzanUrl: item.youzanUrl
-                        }));
-                    }
+                if (!genderCategory) {
+                    throw new Error(`未找到对应的性别分类: ${activeGender === 'male' ? '男装' : '女装'}`);
                 }
-            }
-            
-            // 如果 API Server 数据获取失败，回退到本地数据
-            if (itemsToShow.length === 0) {
-                console.log('API Server 数据获取失败，使用本地数据');
-                const clothingData = this.getClothingData();
+                
+                let subCategoryId = null;
                 
                 if (activeCategory === 'tops-bottoms' && this.currentSubCategory) {
-                    if (clothingData[activeGender] && clothingData[activeGender][this.currentSubCategory]) {
-                        itemsToShow = clothingData[activeGender][this.currentSubCategory];
-                    }
+                    // 查找对应的子分类
+                    const subCategoryName = this.currentSubCategory === 'tops' ? '外套' : '裤子';
+                    const subCategory = genderCategory.children.find(child => 
+                        child.name === subCategoryName
+                    );
+                    subCategoryId = subCategory ? subCategory.id : null;
+                    console.log('🔍 查找子分类:', {
+                        looking: subCategoryName,
+                        found: !!subCategory,
+                        available: genderCategory.children.map(child => child.name),
+                        subCategoryId
+                    });
                 } else if (activeCategory === 'dresses') {
-                    if (clothingData[activeGender] && clothingData[activeGender].dresses) {
-                        itemsToShow = clothingData[activeGender].dresses;
-                    }
+                    // 查找裙子子分类
+                    const subCategory = genderCategory.children.find(child => 
+                        child.name === '连衣裙' || child.name === '裙子'
+                    );
+                    subCategoryId = subCategory ? subCategory.id : null;
+                    console.log('👗 查找裙子分类:', {
+                        looking: ['连衣裙', '裙子'],
+                        found: !!subCategory,
+                        available: genderCategory.children.map(child => child.name),
+                        subCategoryId
+                    });
                 }
+                
+                if (!subCategoryId) {
+                    throw new Error(`未找到对应的子分类ID`);
+                }
+                
+                console.log('👔 获取分类服装数据:', subCategoryId);
+                const clothesResponse = await window.apiClient.getClothingByCategory(subCategoryId);
+                console.log('📦 获取到服装数据:', clothesResponse);
+                
+                if (!clothesResponse.success || !clothesResponse.data.clothes) {
+                    throw new Error('API服务器返回的服装数据格式错误');
+                }
+                
+                itemsToShow = clothesResponse.data.clothes.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    image: item.imageUrl,
+                    description: item.description,
+                    prompt: item.prompt,
+                    youzanUrl: item.youzanUrl
+                }));
+                console.log('✅ 映射后的服装数据:', itemsToShow.length, '件');
+                
+            } catch (apiError) {
+                console.error('❌ API服务器数据获取失败:', apiError);
+                throw new Error(`API服务器数据获取失败: ${apiError.message}`);
             }
-
-            itemsToShow.forEach(item => {
-                const itemEl = document.createElement('div');
-                itemEl.className = 'clothing-item';
-                itemEl.dataset.id = item.id;
-                itemEl.innerHTML = `
-                    <img src="${item.image}" alt="${item.name}">
-                    <div class="label">${item.name}</div>
-                `;
-                itemEl.onclick = () => this.selectClothing(item);
-                
-                // 检查是否已选中
-                if (this.isItemSelected(item)) {
-                    itemEl.classList.add('selected');
-                }
-                
-                grid.appendChild(itemEl);
-            });
+            
+            // 显示服装数据
+            if (itemsToShow.length === 0) {
+                this.showNoDataMessage();
+            } else {
+                itemsToShow.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'clothing-item';
+                    itemEl.dataset.id = item.id;
+                    itemEl.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}">
+                        <div class="label">${item.name}</div>
+                    `;
+                    itemEl.onclick = () => this.selectClothing(item);
+                    
+                    // 检查是否已选中
+                    if (this.isItemSelected(item)) {
+                        itemEl.classList.add('selected');
+                    }
+                    
+                    grid.appendChild(itemEl);
+                });
+                console.log('✅ 服装数据渲染完成');
+            }
             
         } catch (error) {
-            console.error('加载衣服数据失败:', error);
-            // 显示错误信息
-            grid.innerHTML = '<div class="error-message">加载衣服数据失败，请检查网络连接</div>';
+            console.error('❌ 加载服装数据失败:', error);
+            this.showApiErrorMessage(error.message);
         }
     }
 
@@ -328,51 +422,68 @@ class AppState {
         return null;
     }
 
-    getClothingData() {
-        return {
-            female: {
-                tops: [
-                    { id: 'f_top1', name: '白色衬衫', image: '../public/female/coats/1.jpg', description: '经典白色衬衫' },
-                    { id: 'f_top2', name: '粉色T恤', image: '../public/female/coats/2.jpg', description: '甜美粉色T恤' },
-                    { id: 'f_top3', name: '蓝色针织衫', image: '../public/female/coats/3.jpg', description: '温暖蓝色针织衫' },
-                    { id: 'f_top4', name: '时尚上衣', image: '../public/female/coats/4.jpg', description: '时尚设计上衣' },
-                    { id: 'f_top5', name: '优雅上衣', image: '../public/female/coats/5.png', description: '优雅设计上衣' },
-                    { id: 'f_top6', name: '经典上衣', image: '../public/female/coats/6.png', description: '经典款式上衣' },
-                    { id: 'f_top7', name: '时尚上衣', image: '../public/female/coats/7.png', description: '时尚款式上衣' },
-                    { id: 'f_top8', name: '优雅上衣', image: '../public/female/coats/8.png', description: '优雅款式上衣' }
-                ],
-                bottoms: [
-                    { id: 'f_bottom1', name: '牛仔裤', image: '../public/female/pants/9.jpg', description: '经典蓝色牛仔裤' },
-                    { id: 'f_bottom2', name: '时尚长裤', image: '../public/female/pants/10.jpg', description: '时尚设计长裤' }
-                ],
-                dresses: [
-                    { id: 'f_dress1', name: '粉色连衣裙', image: '../public/female/skirts/11.webp', description: '甜美粉色连衣裙' },
-                    { id: 'f_dress2', name: '时尚裙装', image: '../public/female/skirts/12.png', description: '时尚设计裙装' }
-                ]
-            },
-            male: {
-                tops: [
-                    { id: 'm_top1', name: '蓝色衬衫', image: '../public/male/coats/1.jpg', description: '商务蓝色衬衫' },
-                    { id: 'm_top2', name: '白色T恤', image: '../public/male/coats/2.jpg', description: '简约白色T恤' },
-                    { id: 'm_top3', name: '灰色卫衣', image: '../public/male/coats/3.jpg', description: '舒适灰色连帽卫衣' },
-                    { id: 'm_top4', name: '时尚上衣', image: '../public/male/coats/4.jpg', description: '时尚设计上衣' },
-                    { id: 'm_top5', name: '优雅上衣', image: '../public/male/coats/5.jpg', description: '经典款式上衣' },
-                    { id: 'm_top6', name: '经典上衣', image: '../public/male/coats/6.jpg', description: '经典款式上衣' },
-                    { id: 'm_top7', name: '时尚上衣', image: '../public/male/coats/7.jpg', description: '时尚款式上衣' }
-                ],
-                bottoms: [
-                    { id: 'm_bottom1', name: '牛仔裤', image: '../public/male/pants/8.jpg', description: '经典蓝色牛仔裤' },
-                    { id: 'm_bottom2', name: '卡其裤', image: '../public/male/pants/9.jpg', description: '休闲卡其色长裤' },
-                    { id: 'm_bottom3', name: '时尚长裤', image: '../public/male/pants/10.jpg', description: '时尚设计长裤' },
-                    { id: 'm_bottom4', name: '休闲裤', image: '../public/male/pants/11.jpg', description: '舒适休闲长裤' },
-                    { id: 'm_bottom5', name: '商务裤', image: '../public/male/pants/12.jpg', description: '专业商务长裤' },
-                    { id: 'm_bottom6', name: '运动裤', image: '../public/male/pants/13.jpg', description: '运动休闲长裤' },
-                    { id: 'm_bottom7', name: '时尚裤', image: '../public/male/pants/14.jpg', description: '时尚设计长裤' }
-                ],
-                dresses: []
-            }
-        };
+    showApiErrorMessage(errorMessage = 'API服务器连接失败') {
+        // 在服装网格中显示错误提示
+        const grid = document.getElementById('clothing-grid');
+        if (grid) {
+            const errorHtml = `
+                <div class="api-error-message" style="
+                    grid-column: 1 / -1;
+                    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+                    border: 1px solid #dc3545;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 10px;
+                    text-align: center;
+                    color: #721c24;
+                    box-shadow: 0 2px 8px rgba(220,53,69,0.2);
+                ">
+                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">
+                        🚫 无法连接到服务器
+                    </div>
+                    <div style="margin-bottom: 15px; line-height: 1.5;">
+                        ${errorMessage}<br>
+                        请检查网络连接和API服务器状态后重试。
+                    </div>
+                    <div style="font-size: 0.9em; color: #6c757d;">
+                        解决方案：1. 检查配置页面中的服务器地址 | 2. 确保API服务器正在运行 | 3. 重启应用
+                    </div>
+                </div>
+            `;
+            grid.innerHTML = errorHtml;
+        }
     }
+
+    showNoDataMessage() {
+        // 显示无数据提示
+        const grid = document.getElementById('clothing-grid');
+        if (grid) {
+            const noDataHtml = `
+                <div class="no-data-message" style="
+                    grid-column: 1 / -1;
+                    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+                    border: 1px solid #ffc107;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 10px;
+                    text-align: center;
+                    color: #856404;
+                    box-shadow: 0 2px 8px rgba(255,193,7,0.2);
+                ">
+                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">
+                        📦 暂无服装数据
+                    </div>
+                    <div style="margin-bottom: 15px; line-height: 1.5;">
+                        当前分类下暂无可用的服装数据。<br>
+                        请尝试切换其他分类或联系管理员添加服装数据。
+                    </div>
+                </div>
+            `;
+            grid.innerHTML = noDataHtml;
+        }
+    }
+
+    // 本地数据方法已移除 - 客户端只从API服务器加载数据
 
     selectClothing(item) {
         // 选择来源：根据当前分类判断
@@ -474,7 +585,8 @@ class AppState {
     }
 
     async startFittingProcess() {
-        if (!this.userProfile.fullBodyShotNameInRH || (!this.selectedDress && !this.selectedTopBottom)) {
+        // 检查是否有照片和服装选择
+        if ((!this.userProfile.fullBodyShotNameInRH && !this.currentTaskId) || (!this.selectedDress && !this.selectedTopBottom)) {
             this.showError('请确保已上传照片并选择服装');
             return;
         }
@@ -482,11 +594,11 @@ class AppState {
         this.showLoading('正在生成试衣效果...', '这可能需要几分钟时间，请耐心等待');
 
         try {
-            // 优先使用新的 API Server 任务管理
-            if (window.apiClient && window.apiClient.token && this.userProfile.photoUrl) {
+            // 优先使用 API Server 任务管理
+            if (window.apiClient && window.apiClient.token && this.currentTaskId) {
                 await this.startApiServerTask();
             } else {
-                // 回退到原有的 RunningHub 直接调用
+                // 回退到原有的 RunningHub 直接调用流程
                 await this.startLegacyRunningHubTask();
             }
 
@@ -500,41 +612,57 @@ class AppState {
     // 使用新的 API Server 任务管理
     async startApiServerTask() {
         try {
-            // 获取选中的衣服ID
-            let clothesId = null;
+            // 获取选中的衣服 ID列表
+            let topClothesId = null;
+            let bottomClothesId = null;
+            
             if (this.selectedDress) {
-                clothesId = this.selectedDress.item.id;
-            } else if (this.selectedTopBottom && this.selectedTopBottom.tops) {
-                clothesId = this.selectedTopBottom.tops.id;
+                // 选择了裙子，作为上衣处理
+                topClothesId = this.selectedDress.item.id;
+            } else if (this.selectedTopBottom) {
+                if (this.selectedTopBottom.tops) {
+                    topClothesId = this.selectedTopBottom.tops.id;
+                }
+                if (this.selectedTopBottom.bottoms) {
+                    bottomClothesId = this.selectedTopBottom.bottoms.id;
+                }
             }
 
-            if (!clothesId) {
-                throw new Error('未选择有效的服装');
+            if (!topClothesId) {
+                throw new Error('未选择有效的上衣或裙子');
             }
 
-            // 创建任务
-            const taskResponse = await window.apiClient.createTask(
-                clothesId,
-                this.userProfile.photoUrl
+            // 检查是否有任务ID
+            if (!this.currentTaskId) {
+                throw new Error('未找到任务ID，请重新上传照片');
+            }
+
+            // 启动试穿任务
+            const taskResponse = await window.apiClient.startTryonTask(
+                this.currentTaskId,
+                topClothesId,
+                bottomClothesId
             );
 
             if (!taskResponse.success) {
-                throw new Error(taskResponse.error || '创建任务失败');
+                throw new Error(taskResponse.error || '启动试穿任务失败');
             }
 
             this.currentTask = {
-                taskId: taskResponse.data.taskId,
+                taskId: this.currentTaskId,
                 status: taskResponse.data.status,
                 runninghubTaskId: taskResponse.data.runninghubTaskId
             };
+
+            console.log('✅ API Server 试穿任务启动成功:', this.currentTask);
 
             // 开始轮询任务状态
             this.pollApiServerTaskStatus();
 
         } catch (error) {
             console.error('API Server 任务创建失败:', error);
-            // 回退到原有流程
-            await this.startLegacyRunningHubTask();
+            this.hideLoading();
+            this.showError('试衣任务创建失败: ' + error.message);
         }
     }
 
@@ -1467,7 +1595,7 @@ class AppState {
             },
             server: {
                 host: 'localhost',
-                port: 3000
+                port: 4001  // 修改为与API服务器一致的端口
             }
         };
     }
@@ -1680,49 +1808,119 @@ async function initializeApiClient() {
     try {
         console.log('🚀 初始化 API 客户端...');
         
-        // 获取设备 MAC 地址
-        const { ipcRenderer } = require('electron');
-        const macAddress = await ipcRenderer.invoke('get-mac-address');
+        // 检查 api-client.js 文件是否被正确加载
+        console.log('🔍 检查API客户端加载状态:', {
+            windowApiClient: typeof window.apiClient,
+            windowApiClientClass: typeof window.ApiClient,
+            apiClientExists: !!window.apiClient,
+            apiClientClassExists: !!window.ApiClient
+        });
         
-        console.log('📱 设备 MAC 地址:', macAddress);
-        
-        // 尝试连接 API Server
-        try {
-            const healthResponse = await window.apiClient.healthCheck();
-            console.log('✅ API Server 连接成功:', healthResponse);
+        // 首先检查 window.apiClient 是否存在
+        if (!window.apiClient) {
+            console.error('❌ window.apiClient 未定义');
+            console.error('🔍 可能的原因:');
+            console.error('  1. api-client.js 文件未正确加载');
+            console.error('  2. 脚本加载顺序错误');
+            console.error('  3. 文件路径错误');
+            console.error('  4. JavaScript语法错误阻止了脚本执行');
             
-            // 进行设备认证
+            // 尝试手动创建API客户端实例
+            if (window.ApiClient) {
+                console.log('⚠️ 发现ApiClient类，尝试手动创建实例...');
+                window.apiClient = new window.ApiClient();
+                console.log('✅ 手动创建API客户端实例成功');
+            } else {
+                console.error('❌ ApiClient类也未定义，请检查 api-client.js 文件是否正确加载');
+                
+                // 显示用户友好的错误信息
+                appState.showError('API客户端加载失败，请刷新页面重试。如问题持续存在，请联系技术支持。');
+                return;
+            }
+        }
+        
+        console.log('✅ window.apiClient 已加载');
+        
+        // 初始化API客户端（从配置页面加载服务器地址）
+        await window.apiClient.initialize();
+        
+        // 测试API服务器连接
+        try {
+            console.log('🔍 测试API服务器连接...');
+            const healthResponse = await window.apiClient.healthCheck();
+            console.log('✅ API Server 健康检查成功:', healthResponse);
+        } catch (healthError) {
+            console.warn('⚠️ API Server 健康检查失败:', healthError.message);
+            console.log('将继续尝试设备认证，可能服务器正在启动中...');
+        }
+        
+        // 获取设备 MAC 地址
+        let macAddress;
+        try {
+            const { ipcRenderer } = require('electron');
+            macAddress = await ipcRenderer.invoke('get-mac-address');
+            console.log('📱 设备 MAC 地址:', macAddress);
+        } catch (macError) {
+            console.error('❌ 获取MAC地址失败:', macError.message);
+            // 使用备用MAC地址
+            macAddress = 'fallback-mac-' + Date.now();
+            console.log('⚠️ 使用备用MAC地址:', macAddress);
+        }
+        
+        // 进行设备认证
+        try {
+            console.log('🔐 开始设备认证...');
             const authResponse = await window.apiClient.authenticateDevice(
                 macAddress,
                 `设备-${macAddress.slice(-6)}`
             );
             
             if (authResponse.success) {
-                console.log('✅ 设备认证成功:', authResponse.device);
+                console.log('✅ 设备认证成功:', {
+                    deviceId: authResponse.device.id,
+                    hasToken: !!window.apiClient.token
+                });
+                
+                // 测试认证后的API调用
+                try {
+                    console.log('🧪 测试认证后的API调用...');
+                    const categoriesResponse = await window.apiClient.getClothingCategories();
+                    console.log('✅ 服装分类获取成功:', categoriesResponse.success ? '成功' : '失败');
+                    
+                    const clothingResponse = await window.apiClient.getClothingList();
+                    console.log('✅ 服装列表获取成功:', clothingResponse.success ? '成功' : '失败');
+                } catch (testError) {
+                    console.warn('⚠️ 认证后API测试失败:', testError.message);
+                }
                 
                 // 检查微信关注状态
-                const wechatStatus = await window.apiClient.checkWechatStatus(authResponse.device.id);
-                console.log('📱 微信关注状态:', wechatStatus);
-                
-                if (wechatStatus.success && wechatStatus.isVerified) {
-                    console.log('✅ 用户已关注微信公众号');
-                    // 可以在这里添加已关注用户的特殊处理
-                } else {
-                    console.log('⚠️ 用户未关注微信公众号，需要扫码关注');
-                    // 生成微信二维码
-                    await generateWechatQRCode(authResponse.device.id);
+                try {
+                    const wechatStatus = await window.apiClient.checkWechatStatus(authResponse.device.id);
+                    console.log('📱 微信关注状态:', wechatStatus);
+                    
+                    if (wechatStatus.success && wechatStatus.isVerified) {
+                        console.log('✅ 用户已关注微信公众号');
+                        // 可以在这里添加已关注用户的特殊处理
+                    } else {
+                        console.log('⚠️ 用户未关注微信公众号，需要扫码关注');
+                        // 生成微信二维码
+                        await generateWechatQRCode(authResponse.device.id);
+                    }
+                } catch (wechatError) {
+                    console.warn('⚠️ 微信状态检查失败:', wechatError.message);
                 }
+                
             } else {
                 console.error('❌ 设备认证失败:', authResponse.error);
             }
             
-        } catch (apiError) {
-            console.warn('⚠️ API Server 连接失败，将使用本地模式:', apiError.message);
-            // API Server 不可用，继续使用本地模式
+        } catch (authError) {
+            console.error('❌ 设备认证过程出错:', authError.message);
         }
         
     } catch (error) {
-        console.error('❌ API 客户端初始化失败:', error);
+        console.error('❌ API 客户端初始化失败:', error.message);
+        console.error('详细错误信息:', error);
     }
 }
 
@@ -1746,6 +1944,11 @@ async function generateWechatQRCode(deviceId) {
 // 事件监听器
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('📝 DOM内容加载完成，开始初始化...');
+    
+    // 等待一小段时间确保所有脚本都加载完成
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // 从配置加载摄像头设备ID
     try {
         const cfg = appState.getConfig();
@@ -1938,6 +2141,92 @@ async function saveConfig() {
     } catch (e) {
         console.error('保存配置失败:', e);
         appState.showError('保存配置失败: ' + e.message);
+    }
+}
+
+// 测试API连接
+async function testApiConnection() {
+    const resultDiv = document.getElementById('api-test-result');
+    const host = document.getElementById('cfg-server-host').value.trim() || 'localhost';
+    const port = document.getElementById('cfg-server-port').value || '4001';
+    
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div style="color: #007bff;">🔄 正在测试连接...</div>';
+    
+    try {
+        const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+        const baseUrl = `${protocol}://${host}:${port}`;
+        
+        console.log('🧪 测试API连接:', baseUrl);
+        
+        // 测试健康检查
+        const healthResponse = await fetch(`${baseUrl}/health`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!healthResponse.ok) {
+            throw new Error(`HTTP ${healthResponse.status}: ${healthResponse.statusText}`);
+        }
+        
+        const healthData = await healthResponse.json();
+        console.log('✅ 健康检查成功:', healthData);
+        
+        // 测试设备认证
+        const testMac = 'test-config-' + Date.now();
+        const authResponse = await fetch(`${baseUrl}/api/auth/device`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                macAddress: testMac,
+                deviceName: '配置测试设备'
+            })
+        });
+        
+        if (!authResponse.ok) {
+            throw new Error(`认证失败: HTTP ${authResponse.status}`);
+        }
+        
+        const authData = await authResponse.json();
+        console.log('✅ 设备认证成功:', authData);
+        
+        if (authData.success) {
+            // 测试服装分类接口
+            const categoriesResponse = await fetch(`${baseUrl}/api/clothes/categories`, {
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authData.token}`
+                }
+            });
+            
+            if (categoriesResponse.ok) {
+                const categoriesData = await categoriesResponse.json();
+                console.log('✅ 服装分类获取成功:', categoriesData);
+                
+                resultDiv.innerHTML = `
+                    <div style="color: #28a745; border: 1px solid #28a745; background: #d4edda; padding: 8px; border-radius: 4px;">
+                        ✅ API连接测试成功<br>
+                        <small>服务器: ${baseUrl}<br>
+                        健康状态: ${healthData.status || 'OK'}<br>
+                        服装分类: ${categoriesData.data?.length || 0} 个</small>
+                    </div>
+                `;
+            } else {
+                throw new Error('服装分类接口测试失败');
+            }
+        } else {
+            throw new Error('设备认证返回失败状态');
+        }
+        
+    } catch (error) {
+        console.error('❌ API连接测试失败:', error);
+        resultDiv.innerHTML = `
+            <div style="color: #dc3545; border: 1px solid #dc3545; background: #f8d7da; padding: 8px; border-radius: 4px;">
+                ❌ API连接测试失败<br>
+                <small>${error.message}</small><br>
+                <small style="color: #6c757d;">请检查服务器地址和端口设置</small>
+            </div>
+        `;
     }
 }
 
@@ -2424,24 +2713,28 @@ async function uploadPhotoToServer(photoData) {
         }
         
         appState.userProfile.photoFileName = result.fileName;
+        appState.userProfile.photoUrl = photoData; // 保存原始的data URL
         
-        // 2. 上传到新的 API Server（如果可用）
+        // 2. 上传到新的 API Server 并创建任务（如果可用）
         if (window.apiClient && window.apiClient.token) {
             try {
-                console.log('开始上传照片到 API Server...');
-                const apiUploadResponse = await window.apiClient.uploadPhoto(blob);
+                console.log('开始上传照片到 API Server 并创建任务...');
+                const apiUploadResponse = await window.apiClient.uploadPhotoAndCreateTask(blob);
                 console.log('API Server 上传结果:', apiUploadResponse);
                 
                 if (apiUploadResponse.success) {
-                    appState.userProfile.photoUrl = apiUploadResponse.data.url;
-                    console.log('API Server 照片URL:', apiUploadResponse.data.url);
+                    // 保存任务ID供后续使用
+                    appState.currentTaskId = apiUploadResponse.data.taskId;
+                    console.log('任务创建成功，任务ID:', appState.currentTaskId);
+                } else {
+                    console.warn('API Server 任务创建失败:', apiUploadResponse.error);
                 }
             } catch (apiError) {
                 console.warn('API Server 上传失败，继续使用本地服务器:', apiError);
             }
         }
         
-        // 3. 上传到RunningHub（保持原有逻辑）
+        // 3. 上传到RunningHub（保持原有逻辑作为备用）
         console.log('开始上传照片到RunningHub...');
         const rhUploadResponse = await appState.uploadImageToRunningHub(photoData);
         console.log('RunningHub上传结果:', rhUploadResponse);
@@ -2461,7 +2754,7 @@ async function uploadPhotoToServer(photoData) {
         resetGenerateButton();
         
         // 跳转到服装选择页面
-        appState.setPage('clothing-page');
+        await appState.setPage('clothing-page');
         
     } catch (error) {
         console.error('上传照片错误:', error);

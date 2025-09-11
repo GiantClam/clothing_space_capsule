@@ -53,6 +53,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 静态文件服务 - 用于本地调试模式的文件访问
+app.use('/uploads', express.static('uploads', {
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png') || path.endsWith('.webp')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1天缓存
+    }
+  }
+}));
+
 // API 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/wechat', wechatRoutes);
@@ -95,7 +105,7 @@ process.on('SIGTERM', async () => {
 try {
   validateEnvironment();
   
-  const PORT = process.env.PORT || 4001;
+  const PORT = process.env.PORT || 4002;
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 API 服务器运行在端口 ${PORT}`);

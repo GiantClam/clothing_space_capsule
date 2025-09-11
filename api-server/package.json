@@ -12,6 +12,14 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "node prisma/seed.js",
+    "db:check": "node scripts/check-database.js",
+    "db:fix": "node scripts/fix-database.js",
+    "db:reset": "prisma migrate reset --force",
+    "db:start": "docker-compose -f ../docker-compose.db.yml up -d",
+    "db:stop": "docker-compose -f ../docker-compose.db.yml down",
+    "db:status": "docker-compose -f ../docker-compose.db.yml ps",
+    "db:logs": "docker-compose -f ../docker-compose.db.yml logs",
+    "db:setup": "npm run db:start && sleep 10 && npm run db:migrate && npm run db:seed",
     "docker:build": "docker build -t clothing-api .",
     "docker:run": "docker run -p 4001:4001 clothing-api",
     "lint": "eslint src/ --ext .js",
@@ -24,6 +32,9 @@
     "runninghub",
     "wechat"
   ],
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {

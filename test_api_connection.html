@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+        }
+        .success {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .error {
+            background-color: #ffeaea;
+            border-left-color: #f44336;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left-color: #ff9800;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API连接测试工具</h1>
+        <p>这个工具用于测试客户端与API服务器的连接状态</p>
+        
+        <div>
+            <button onclick="testHealthCheck()">测试健康检查</button>
+            <button onclick="testDeviceAuth()">测试设备认证</button>
+            <button onclick="testClothingAPI()">测试服装接口</button>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <h3>详细日志</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // 创建API客户端实例
+        class ApiClient {
+            constructor() {
+                this.baseUrl = 'http://localhost:4001'; // API Server 地址
+                this.token = null;
+                this.deviceId = null;
+            }
+
+            setToken(token) {
+                this.token = token;
+            }
+
+            setDeviceId(deviceId) {
+                this.deviceId = deviceId;
+            }
+
+            async request(endpoint, options = {}) {
+                const url = `${this.baseUrl}${endpoint}`;
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                };
+
+                if (this.token) {
+                    config.headers['Authorization'] = `Bearer ${this.token}`;
+                }
+
+                try {
+                    log(`📤 API请求: ${config.method || 'GET'} ${url}`);
+                    const response = await fetch(url, config);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        log(`❌ API请求失败 [${endpoint}]: ${response.status} ${response.statusText}`);
+                        log(`错误详情: ${JSON.stringify(data, null, 2)}`);
+                        throw new Error(data.error || `HTTP ${response.status}`);
+                    }
+
+                    log(`✅ API请求成功 [${endpoint}]`);
+                    log(`响应数据: ${JSON.stringify(data, null, 2)}`);
+                    return data;
+                } catch (error) {
+                    log(`❌ API 请求失败 [${endpoint}]: ${error.message}`);
+                    throw error;
+                }
+            }
+
+            async healthCheck() {
+                return await this.request('/health');
+            }
+
+            async authenticateDevice(macAddress, deviceName) {
+                const response = await this.request('/api/auth/device', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        macAddress,
+                        deviceName
+                    })
+                });
+
+                if (response.success) {
+                    this.setToken(response.token);
+                    this.setDeviceId(response.device.id);
+                }
+
+                return response;
+            }
+
+            async getClothingCategories() {
+                return await this.request('/api/clothes/categories');
+            }
+
+            async getClothingList() {
+                return await this.request('/api/clothes/list');
+            }
+        }
+
+        const apiClient = new ApiClient();
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function showResult(message, type = 'success') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testHealthCheck() {
+            try {
+                log('🔍 开始测试健康检查接口...');
+                const response = await apiClient.healthCheck();
+                showResult('✅ 健康检查通过', 'success');
+                log(`健康检查结果: 状态=${response.status}, 环境=${response.config?.nodeEnv}, 端口=${response.config?.port}`);
+            } catch (error) {
+                showResult(`❌ 健康检查失败: ${error.message}`, 'error');
+                log(`健康检查失败: ${error.message}`);
+            }
+        }
+
+        async function testDeviceAuth() {
+            try {
+                log('🔍 开始测试设备认证...');
+                const macAddress = 'test-mac-' + Date.now();
+                const deviceName = '测试设备';
+                
+                const response = await apiClient.authenticateDevice(macAddress, deviceName);
+                
+                if (response.success) {
+                    showResult('✅ 设备认证成功', 'success');
+                    log(`设备认证成功: 设备ID=${response.device.id}, Token获取成功`);
+                } else {
+                    showResult(`❌ 设备认证失败: ${response.error}`, 'error');
+                    log(`设备认证失败: ${response.error}`);
+                }
+            } catch (error) {
+                showResult(`❌ 设备认证错误: ${error.message}`, 'error');
+                log(`设备认证错误: ${error.message}`);
+            }
+        }
+
+        async function testClothingAPI() {
+            try {
+                log('🔍 开始测试服装相关接口...');
+                
+                // 如果没有token，先进行设备认证
+                if (!apiClient.token) {
+                    log('⚠️ 未找到认证token，先进行设备认证...');
+                    await testDeviceAuth();
+                    
+                    if (!apiClient.token) {
+                        throw new Error('设备认证失败，无法测试服装接口');
+                    }
+                }
+                
+                // 测试获取分类
+                log('📂 测试获取服装分类...');
+                const categories = await apiClient.getClothingCategories();
+                if (categories.success) {
+                    log(`✅ 获取分类成功: 共${categories.data.length}个一级分类`);
+                    categories.data.forEach(cat => {
+                        log(`  - ${cat.name} (${cat.children?.length || 0}个子分类)`);
+                    });
+                }
+                
+                // 测试获取服装列表
+                log('👔 测试获取服装列表...');
+                const clothingList = await apiClient.getClothingList();
+                if (clothingList.success) {
+                    log(`✅ 获取服装列表成功: 共${clothingList.data.clothes.length}件服装`);
+                    clothingList.data.clothes.forEach(item => {
+                        log(`  - ${item.name} (分类: ${item.category.name})`);
+                    });
+                }
+                
+                showResult('✅ 服装接口测试通过', 'success');
+                
+            } catch (error) {
+                showResult(`❌ 服装接口测试失败: ${error.message}`, 'error');
+                log(`服装接口测试失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动进行基础连接测试
+        window.addEventListener('load', async () => {
+            log('🚀 API连接测试工具已启动');
+            log(`目标API服务器: ${apiClient.baseUrl}`);
+            
+            // 自动测试健康检查
+            setTimeout(testHealthCheck, 1000);
+        });
+    </script>
+</body>
+</html>

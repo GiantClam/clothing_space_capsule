@@ -31,3 +31,6 @@ public/**/*.png
 public/**/*.webp
 public/**/*.jpeg
 public/**/*.gif
+
+# Build output
+/dist/

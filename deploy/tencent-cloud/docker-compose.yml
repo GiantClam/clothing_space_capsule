@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  api-server:
+    image: clothing-space-capsule-api
+    build: 
+      context: ../..
+      dockerfile: deploy/tencent-cloud/Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ../../api-server/.env
+    restart: unless-stopped
+    volumes:
+      - ../../uploads:/app/uploads
+      - ../../public:/app/public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 如果需要数据库，可以添加PostgreSQL服务
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: clothing_space_capsule
+  #     POSTGRES_USER: your_username
+  #     POSTGRES_PASSWORD: your_password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   postgres_data:

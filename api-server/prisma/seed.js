@@ -89,20 +89,19 @@ async function main() {
       name: '经典黑色风衣',
       categoryId: createdSubCategories[0].id, // 男装外套
       imageUrl: '/male/coats/coat1.jpg',
-      prompt: 'a man wearing a classic black trench coat, elegant and stylish, high quality fashion photography',
+      detailDesc: 'a man wearing a classic black trench coat, elegant and stylish, high quality fashion photography',
       description: '经典黑色风衣，适合商务和休闲场合',
       price: 299.00,
-      youzanProductId: '123456', // 有赞商品ID
-      youzanUrl: 'https://h5.youzan.com/v2/goods/123456' // 备用链接
+      purchaseUrl: 'https://h5.youzan.com/v2/goods/123456' // 备用链接
     },
     {
       name: '深蓝色西装外套',
       categoryId: createdSubCategories[0].id,
       imageUrl: '/male/coats/coat2.jpg',
-      prompt: 'a man wearing a navy blue blazer, professional and sophisticated, studio lighting',
+      detailDesc: 'a man wearing a navy blue blazer, professional and sophisticated, studio lighting',
       description: '深蓝色西装外套，商务正装首选',
       price: 399.00,
-      youzanUrl: 'https://h5.youzan.com/v2/goods/123457'
+      purchaseUrl: 'https://h5.youzan.com/v2/goods/123457'
     },
     
     // 男装裤子
@@ -110,10 +109,10 @@ async function main() {
       name: '黑色休闲裤',
       categoryId: createdSubCategories[1].id, // 男装裤子
       imageUrl: '/male/pants/pants1.jpg',
-      prompt: 'a man wearing black casual pants, comfortable and versatile, modern style',
+      detailDesc: 'a man wearing black casual pants, comfortable and versatile, modern style',
       description: '黑色休闲裤，百搭实用',
       price: 199.00,
-      youzanUrl: 'https://youzan.com/product/123458'
+      purchaseUrl: 'https://youzan.com/product/123458'
     },
     
     // 女装外套
@@ -121,10 +120,10 @@ async function main() {
       name: '米色羊毛大衣',
       categoryId: createdSubCategories[4].id, // 女装外套
       imageUrl: '/female/coats/coat1.jpg',
-      prompt: 'a woman wearing a beige wool coat, elegant and warm, winter fashion',
+      detailDesc: 'a woman wearing a beige wool coat, elegant and warm, winter fashion',
       description: '米色羊毛大衣，保暖又时尚',
       price: 599.00,
-      youzanUrl: 'https://youzan.com/product/123459'
+      purchaseUrl: 'https://youzan.com/product/123459'
     },
     
     // 女装裙子
@@ -132,10 +131,10 @@ async function main() {
       name: '黑色A字裙',
       categoryId: createdSubCategories[5].id, // 女装裙子
       imageUrl: '/female/skirts/skirt1.jpg',
-      prompt: 'a woman wearing a black A-line skirt, classic and feminine, office wear',
+      detailDesc: 'a woman wearing a black A-line skirt, classic and feminine, office wear',
       description: '黑色A字裙，职场女性必备',
       price: 159.00,
-      youzanUrl: 'https://youzan.com/product/123460'
+      purchaseUrl: 'https://youzan.com/product/123460'
     },
     
     // 女装连衣裙
@@ -143,10 +142,10 @@ async function main() {
       name: '碎花连衣裙',
       categoryId: createdSubCategories[7].id, // 女装连衣裙
       imageUrl: '/female/dresses/dress1.jpg',
-      prompt: 'a woman wearing a floral print dress, romantic and feminine, summer style',
+      detailDesc: 'a woman wearing a floral print dress, romantic and feminine, summer style',
       description: '碎花连衣裙，清新浪漫',
       price: 259.00,
-      youzanUrl: 'https://youzan.com/product/123461'
+      purchaseUrl: 'https://youzan.com/product/123461'
     }
   ];
 

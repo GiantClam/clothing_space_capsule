@@ -36,7 +36,7 @@ router.post('/webhook', async (req, res) => {
         clothes: {
           select: {
             name: true,
-            youzanUrl: true
+            purchaseUrl: true
           }
         }
       }
@@ -72,7 +72,7 @@ router.post('/webhook', async (req, res) => {
         resultUrl,
         clothesName: task.clothes.name,
         distributionUrl: task.distributionUrl,
-        youzanUrl: task.clothes.youzanUrl
+        purchaseUrl: task.clothes.purchaseUrl
       });
     }
 
@@ -113,7 +113,7 @@ router.get('/task/:runninghubTaskId', async (req, res) => {
 });
 
 // 发送完成消息给用户
-async function sendCompletionMessage(openId, { resultUrl, clothesName, distributionUrl, youzanUrl }) {
+async function sendCompletionMessage(openId, { resultUrl, clothesName, distributionUrl, purchaseUrl }) {
   try {
     const accessToken = await getWechatAccessToken();
     
@@ -135,9 +135,9 @@ async function sendCompletionMessage(openId, { resultUrl, clothesName, distribut
     let messageContent = `🎉 试穿完成！\n\n衣服：${clothesName}`;
     
     // 优先使用分销链接，其次使用普通链接
-    const purchaseUrl = distributionUrl || youzanUrl;
-    if (purchaseUrl) {
-      messageContent += `\n\n🛒 购买链接：${purchaseUrl}`;
+    const finalPurchaseUrl = distributionUrl || purchaseUrl;
+    if (finalPurchaseUrl) {
+      messageContent += `\n\n🛒 购买链接：${finalPurchaseUrl}`;
     }
     
     const textMessage = {

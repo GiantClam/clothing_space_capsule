@@ -24,15 +24,20 @@ class ApiClient {
             if (typeof appState !== 'undefined' && appState.getConfig) {
                 const config = appState.getConfig();
                 console.log('📄 获取到配置:', {
+                    apiServerUrl: config.apiServer?.url || '未设置',
                     serverHost: config.server?.host || '未设置',
                     serverPort: config.server?.port || '未设置'
                 });
                 
-                if (config.server && config.server.host && config.server.port) {
-                    // 使用配置页面设置的服务器地址
+                // 优先使用新的 apiServer.url 配置
+                if (config.apiServer && config.apiServer.url) {
+                    this.baseUrl = config.apiServer.url;
+                    console.log('✅ 使用配置页面设置的API服务器地址:', this.baseUrl);
+                } else if (config.server && config.server.host && config.server.port) {
+                    // 向下兼容：使用配置页面设置的服务器地址
                     const protocol = config.server.host.includes('localhost') || config.server.host.includes('127.0.0.1') ? 'http' : 'https';
                     this.baseUrl = `${protocol}://${config.server.host}:${config.server.port}`;
-                    console.log('✅ 使用配置页面设置的服务器地址:', this.baseUrl);
+                    console.log('✅ 使用配置页面设置的服务器地址(兼容模式):', this.baseUrl);
                 } else {
                     console.log('⚠️ 配置页面中未设置服务器地址，使用默认地址:', this.baseUrl);
                 }
@@ -129,15 +134,27 @@ class ApiClient {
     }
 
     // 微信相关接口
-    async generateWechatQRCode(deviceId) {
+    async generateWechatQRCode(deviceId, macAddress) {
         return await this.request('/api/wechat/qrcode', {
             method: 'POST',
-            body: JSON.stringify({ deviceId })
+            body: JSON.stringify({ deviceId, macAddress })
         });
     }
 
-    async checkWechatStatus(deviceId) {
-        return await this.request(`/api/wechat/status/${deviceId}`);
+    async checkWechatStatus(identifier, type = 'device') {
+        return await this.request(`/api/wechat/status/${identifier}?type=${type}`);
+    }
+
+    // 生成下载二维码
+    async generateDownloadQR(imageUrl, clothingInfo, openid) {
+        return await this.request('/api/wechat/download-qr', {
+            method: 'POST',
+            body: JSON.stringify({
+                imageUrl,
+                clothingInfo,
+                openid
+            })
+        });
     }
 
     // 衣服相关接口

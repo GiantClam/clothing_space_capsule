@@ -111,8 +111,8 @@ npm start
    - 发送任务ID和选中的衣服ID到API-server
    - API-server上传衣服图片到RunningHub
    - 根据选择自动调用对应工作流：
-     - 仅上衣/裙子：工作流 `1957012453269889026`
-     - 上衣+下衣：工作流 `1965625784712970242`
+     - 仅上衣/裙子：工作流 `your_single_item_workflow_id`
+     - 上衣+下衣：工作流 `your_top_bottom_workflow_id`
    - 返回RunningHub任务ID
 
 #### 第五步：状态监控
@@ -134,8 +134,8 @@ PORT=4002
 ```
 
 ### 工作流ID
-- **单件工作流**：`1957012453269889026` （裙子或单上衣）
-- **组合工作流**：`1965625784712970242` （上衣+下衣）
+- **单件工作流**：`your_single_item_workflow_id` （裙子或单上衣）
+- **组合工作流**：`your_top_bottom_workflow_id` （上衣+下衣）
 
 ## 🔧 故障排除
 

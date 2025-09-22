@@ -192,8 +192,8 @@ async function uploadToCOS(localFilePath, cosKey) {
       if (err) {
         reject(err);
       } else {
-        // 返回完整的访问 URL
-        const url = `https://${data.Location}`;
+        // 返回完整的访问 URL，使用自定义域名
+        const url = `https://clothing.0086studios.xyz/${cosKey}`;
         resolve(url);
       }
     });
@@ -287,7 +287,7 @@ router.get('/photos', authenticateDevice, async (req, res) => {
 
       photos = files.map(file => ({
         fileName: file.Key.split('/').pop(),
-        url: `https://${process.env.COS_BUCKET}.cos.${process.env.COS_REGION}.myqcloud.com/${file.Key}`,
+        url: `https://clothing.0086studios.xyz/${file.Key}`,
         size: file.Size,
         lastModified: file.LastModified
       }));
@@ -307,4 +307,4 @@ router.get('/photos', authenticateDevice, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = { router, uploadToCOS };

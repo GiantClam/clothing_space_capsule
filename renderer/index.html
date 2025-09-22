@@ -101,23 +101,26 @@
             <div class="header">
                 <button class="back-button" onclick="goBack()">← 返回</button>
                 <h2>试衣效果</h2>
+                <button class="fullscreen-button" onclick="toggleFullscreen()" id="fullscreen-btn" title="全屏显示">⛶</button>
             </div>
             <div class="results-content gold-card" style="background: transparent">
-                <div class="result-image-container">
-                    <img id="result-image" src="" alt="试衣效果" style="display: none;">
-                    <div class="loading-indicator" id="loading-indicator">
-                        <div class="spinner"></div>
-                        <p>您的时尚偶像好</p>
-                        <div class="progress-text" id="progress-text">正在生成中...</div>
+                <div class="result-main-content">
+                    <div class="result-image-container">
+                        <img id="result-image" src="" alt="试衣效果" style="display: none;">
+                        <div class="loading-indicator" id="loading-indicator">
+                            <div class="spinner"></div>
+                            <p>您的时尚偶像好</p>
+                            <div class="progress-text" id="progress-text">正在生成中...</div>
+                        </div>
+                    </div>
+                    <div class="style-info" id="style-info" style="display: none;">
+                        <div class="style-tag">走秀风</div>
+                        <div class="style-tag">时尚海报风</div>
                     </div>
                 </div>
                 <div class="result-actions" id="result-actions" style="display: none;">
                     <button class="action-button secondary" onclick="retryFitting()">重新选择</button>
                     <button class="action-button primary" onclick="saveImage()">保存图片</button>
-                </div>
-                <div class="style-info" id="style-info" style="display: none;">
-                    <div class="style-tag">走秀风</div>
-                    <div class="style-tag">时尚海报风</div>
                 </div>
             </div>
         </div>
@@ -195,6 +198,18 @@
                 <h2>配置</h2>
             </div>
             <div style="padding:20px; overflow:auto">
+                <div style="margin-bottom:16px">
+                    <h3>API服务器</h3>
+                    <div class="field-group">
+                        <label>API服务器域名</label>
+                        <input id="cfg-api-server-url" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" placeholder="https://api.0086.xyz" />
+                        <small style="color:#666; font-size:12px;">默认值: https://api.0086.xyz</small>
+                    </div>
+                    <div class="field-group">
+                        <button type="button" onclick="testApiServerConnection()" style="margin-top:8px; padding:8px 16px; background:#17a2b8; color:white; border:none; border-radius:4px; cursor:pointer;">测试API服务器连接</button>
+                        <div id="api-server-test-result" style="margin-top:8px; padding:8px; border-radius:4px; display:none;"></div>
+                    </div>
+                </div>
                 <div style="margin-bottom:16px">
                     <h3>RunningHub</h3>
                     <div class="field-group">
@@ -289,7 +304,28 @@
     </div>
 
     <script src="api-client.js"></script>
+    <script src="app.js"></script>
     <script>
+        // 检查AppState和ApiClient是否已正确加载
+        if (typeof AppState === 'undefined') {
+            console.error('❌ AppState类未定义，请检查app.js是否正确加载');
+        } else if (typeof ApiClient === 'undefined') {
+            console.error('❌ ApiClient类未定义，请检查api-client.js是否正确加载');
+        } else {
+            // 检查全局实例是否已创建
+            if (typeof appState === 'undefined') {
+                console.error('❌ appState实例未创建，请检查app.js是否正确执行');
+            } else {
+                console.log('✅ 应用状态管理已初始化');
+            }
+            
+            if (typeof window.apiClient === 'undefined') {
+                console.error('❌ apiClient实例未创建，请检查api-client.js是否正确执行');
+            } else {
+                console.log('✅ API客户端已初始化');
+            }
+        }
+        
         // 即时检查脚本加载状态
         console.log('🔍 在内联脚本中检查 API 客户端加载状态:');
         console.log('- typeof window.ApiClient:', typeof window.ApiClient);
@@ -303,7 +339,7 @@
             console.log('✅ 内联脚本检查: API客户端已加载');
         }
     </script>
-    <script src="app.js"></script>
+    <script src="fullscreen.js"></script>
 </body>
 </html>
 

@@ -8,7 +8,15 @@ build/
 
 # Environment files
 .env
+.env.*
+!.env.example
+!.env.production.example
 .env.local
+.env.development
+.env.production
+.env.test
+.env.staging
+config.runtime.json
 
 # Logs
 logs/
@@ -41,3 +49,23 @@ public/**/*.gif
 
 # Electron binaries
 /node_modules/electron/dist/
+
+# Test and development scripts
+check*.js
+restore*.js
+test*.js
+update*.js
+start-server.js
+start-with-env.js
+final_verification.js
+
+# Config files with sensitive information
+config.runtime.json
+
+# Scripts folder
+scripts/
+
+# API server sensitive files
+api-server/.env
+api-server/.env.*
+api-server/config.runtime.json

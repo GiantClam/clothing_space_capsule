@@ -2,6 +2,11 @@
 // 请根据实际情况修改以下配置
 
 module.exports = {
+    // API 服务器配置
+    apiServer: {
+        url: process.env.API_SERVER_URL || 'http://localhost:4001'
+    },
+
     // RunningHub API 配置
     runninghub: {
         apiKey: process.env.RUNNINGHUB_API_KEY || 'your_runninghub_api_key_here',

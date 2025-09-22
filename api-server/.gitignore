@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Uploads and temporary files
+uploads/
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+
+# Docker
+docker-compose.override.yml
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# Test and development scripts (as per requirements)
+check*.js
+restore*.js
+test*.js
+update*.js
+start-server.js
+start-with-env.js
+final_verification.js
+
+# Scripts folder (as per requirements)
+scripts/
+
+# Database files
+*.sqlite
+*.db
+*.db.*
+prisma/dev.db
+
+# Backup files
+*.bak
+*.backup
+
+# PM2 files
+.ecosystem.yml

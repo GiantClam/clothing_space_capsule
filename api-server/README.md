@@ -1,329 +1,199 @@
 # 服装空间胶囊 API 服务器
 
-这是服装空间胶囊项目的 API 服务器，提供设备认证、微信集成、衣服管理、任务处理等功能。
+这是一个基于 Node.js + Express + Prisma 的 API 服务器，为虚拟试衣应用提供后端服务。
 
 ## 功能特性
 
-- 🔐 **设备认证**：基于 MAC 地址的设备合法性验证
-- 📱 **微信集成**：微信公众号关注验证和消息推送
-- 👗 **衣服管理**：衣服分类、列表、详情管理
-- 📸 **图片上传**：支持用户照片上传到腾讯云 COS
-- 🤖 **AI 任务**：与 RunningHub 集成，处理虚拟试衣任务
-- 🛒 **电商集成**：有赞电商小程序商品链接推送
-- 🐳 **Docker 部署**：支持容器化部署
+- 用户设备认证和管理
+- 服装数据管理
+- 照片上传和处理
+- RunningHub AI 试衣任务管理
+- 微信公众号集成
+- 腾讯云 COS 存储集成
 
 ## 技术栈
 
-- **Node.js** + **Express**：后端框架
-- **PostgreSQL** + **Prisma**：数据库和 ORM
-- **JWT**：身份认证
-- **腾讯云 COS**：图片存储
-- **Docker**：容器化部署
+- Node.js 18+
+- Express.js
+- Prisma ORM
+- PostgreSQL
+- 腾讯云 COS
+- 微信公众号 API
+- RunningHub API
 
 ## 快速开始
 
-### 环境要求
-
-- Node.js 18+
-- PostgreSQL 15+
-- Docker (可选)
-
-### 安装依赖
+### 开发环境
 
 ```bash
+# 安装依赖
 npm install
-```
 
-### 环境配置
+# 设置环境变量（复制 .env.example 为 .env 并填写配置）
+cp .env.example .env
 
-1. 复制环境变量文件：
-```bash
-cp env.example .env
-```
-
-2. 编辑 `.env` 文件，配置必要的环境变量：
-
-```env
-# 服务器配置
-PORT=4001
-NODE_ENV=development
-
-# 数据库配置
-DATABASE_URL="postgresql://username:password@localhost:5432/clothing_capsule_db"
-
-# JWT 配置
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRES_IN=7d
-
-# 微信公众号配置
-WECHAT_APP_ID=your_wechat_app_id
-WECHAT_APP_SECRET=your_wechat_app_secret
-WECHAT_TOKEN=your_wechat_token
-
-# RunningHub API 配置
-RUNNINGHUB_API_URL=https://runninghub.cn/api
-RUNNINGHUB_API_KEY=your_runninghub_api_key
-RUNNINGHUB_WEBHOOK_SECRET=your_webhook_secret
-
-# 腾讯云 COS 配置
-COS_SECRET_ID=your_cos_secret_id
-COS_SECRET_KEY=your_cos_secret_key
-COS_REGION=ap-beijing
-COS_BUCKET=clothing-capsule-images
-
-# 有赞电商配置
-YOUZAN_CLIENT_ID=your_youzan_client_id
-YOUZAN_CLIENT_SECRET=your_youzan_client_secret
-
-# API 服务器配置
-API_BASE_URL=http://localhost:3001
-```
-
-### 数据库初始化
-
-```bash
-# 生成 Prisma 客户端
-npm run db:generate
+# 启动数据库（使用 Docker）
+npm run db:start
 
 # 运行数据库迁移
 npm run db:migrate
 
-# 填充示例数据
+# 运行种子数据
 npm run db:seed
-```
 
-### 启动服务
-
-```bash
-# 开发模式
+# 启动开发服务器
 npm run dev
-
-# 生产模式
-npm start
 ```
 
-## Docker 部署
+### 生产环境部署
 
-### 使用 Docker Compose
+#### 方案一：直接部署（推荐用于腾讯云CVM）
 
 ```bash
-# 启动所有服务
-docker-compose up -d
+# 安装PM2（如果尚未安装）
+npm install -g pm2
 
-# 查看日志
-docker-compose logs -f
+# 复制生产环境配置
+cp .env.production.example .env.production
 
-# 停止服务
-docker-compose down
+# 编辑配置文件，填写实际值
+nano .env.production
+
+# 安装依赖
+npm ci --only=production
+
+# 生成Prisma客户端
+npx prisma generate
+
+# 运行数据库迁移
+npx prisma migrate deploy
+
+# 启动应用
+npm run pm2:start
 ```
 
-### 单独构建 API 服务
+#### 方案二：Docker部署
 
 ```bash
-# 构建镜像
+# 构建Docker镜像
 npm run docker:build
 
-# 运行容器
-npm run docker:run
+# 复制生产环境配置
+cp .env.production.example .env.production
+
+# 编辑配置文件，填写实际值
+nano .env.production
+
+# 启动服务
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## API 接口文档
+#### 方案三：宝塔面板部署
 
-### 认证接口
+详细部署说明请参考 [宝塔面板部署指南](deploy/BAOTA_DEPLOYMENT.md)
 
-#### 设备登录
-```
-POST /api/auth/device
-Content-Type: application/json
+```bash
+# 进入部署目录
+cd deploy
 
-{
-  "macAddress": "00:11:22:33:44:55",
-  "deviceName": "设备名称"
-}
-```
+# Linux环境下运行部署脚本
+chmod +x baota-deploy.sh
+./baota-deploy.sh
 
-#### 获取设备信息
-```
-GET /api/auth/device
-Authorization: Bearer <token>
+# Windows环境下运行部署脚本
+baota-deploy.bat
 ```
 
-### 微信接口
+更多部署细节请查看 [宝塔部署详细文档](docs/BAOTA_DEPLOYMENT_GUIDE.md)
 
-#### 生成关注二维码
-```
-POST /api/wechat/qrcode
-Content-Type: application/json
+## 高并发支持
 
-{
-  "deviceId": "device_id"
-}
-```
+API服务器已配置为支持高并发：
 
-#### 检查关注状态
-```
-GET /api/wechat/status/:deviceId
-```
+1. **集群模式**：使用Node.js集群模块，根据CPU核心数启动多个工作进程
+2. **负载均衡**：可配合Nginx实现负载均衡
+3. **连接池**：Prisma数据库连接池优化
+4. **缓存**：可集成Redis进行数据缓存
 
-### 衣服接口
+## 日志记录
 
-#### 获取分类列表
-```
-GET /api/clothes/categories
-```
+所有日志都会记录在本地 `logs` 目录中：
+- `app-YYYY-MM-DD.log`：应用日志
+- `pm2-out.log`：PM2标准输出日志
+- `pm2-err.log`：PM2错误日志
 
-#### 获取衣服列表
-```
-GET /api/clothes/list?categoryId=xxx&page=1&limit=20&search=关键词
-```
+## 环境变量
 
-#### 获取衣服详情
-```
-GET /api/clothes/:id
-```
+请参考 `.env.example` 文件配置环境变量。
 
-### 上传接口
+## API 文档
 
-#### 上传照片
-```
-POST /api/upload/photo
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
+### 认证相关
+- `POST /api/auth/device` - 设备认证
+- `GET /api/auth/device` - 获取设备信息
 
-photo: <file>
-```
+### 服装相关
+- `GET /api/clothes/categories` - 获取服装分类
+- `GET /api/clothes/list` - 获取服装列表
+- `GET /api/clothes/category/:categoryId` - 获取指定分类的服装
+- `GET /api/clothes/:clothesId` - 获取服装详情
 
-#### 获取照片列表
-```
-GET /api/upload/photos
-Authorization: Bearer <token>
-```
+### 上传相关
+- `POST /api/upload/photo` - 上传用户照片
+- `GET /api/upload/photos` - 获取已上传的照片列表
+- `DELETE /api/upload/photo/:fileName` - 删除照片
 
-### 任务接口
+### 任务相关
+- `POST /api/tasks/upload-photo` - 上传照片并创建任务
+- `POST /api/tasks/start-tryon` - 开始试衣任务
+- `GET /api/tasks/:taskId` - 获取任务状态
+- `GET /api/tasks` - 获取任务列表
+- `POST /api/tasks/:taskId/cancel` - 取消任务
 
-#### 创建试穿任务
-```
-POST /api/tasks/create
-Authorization: Bearer <token>
-Content-Type: application/json
+### 微信相关
+- `POST /api/wechat/qrcode` - 生成微信关注二维码
+- `GET /api/wechat/status/:deviceId` - 检查微信关注状态
+- `POST /api/wechat/download-qr` - 生成下载二维码
+- `POST /api/wechat/callback` - 微信回调处理
+- `POST /api/wechat/push-tryon-result` - 推送试装结果
 
-{
-  "clothesId": "clothes_id",
-  "userPhotoUrl": "https://example.com/photo.jpg"
-}
+### RunningHub相关
+- `POST /api/runninghub/callback` - RunningHub回调处理
+
+## 监控和维护
+
+### 查看应用状态
+```bash
+npm run pm2:status
 ```
 
-#### 查询任务状态
-```
-GET /api/tasks/:taskId
-Authorization: Bearer <token>
-```
-
-#### 获取任务列表
-```
-GET /api/tasks?page=1&limit=20&status=COMPLETED
-Authorization: Bearer <token>
+### 查看日志
+```bash
+npm run pm2:logs
 ```
 
-## 数据库结构
-
-### 主要表结构
-
-- **devices**：设备表
-- **users**：用户表
-- **categories**：衣服分类表
-- **clothes**：衣服表
-- **tasks**：任务表
-- **wechat_messages**：微信消息表
-
-详细结构请参考 `prisma/schema.prisma` 文件。
-
-## 开发指南
-
-### 项目结构
-
+### 重启应用
+```bash
+npm run pm2:restart
 ```
-api-server/
-├── src/
-│   ├── controllers/     # 控制器
-│   ├── services/        # 业务逻辑
-│   ├── models/          # 数据模型
-│   ├── routes/          # 路由定义
-│   ├── middleware/      # 中间件
-│   ├── utils/           # 工具函数
-│   └── app.js           # 应用入口
-├── prisma/              # 数据库相关
-├── docker/              # Docker 配置
-├── config/              # 配置文件
-└── package.json
-```
-
-### 添加新功能
-
-1. 在 `src/routes/` 中创建路由文件
-2. 在 `src/controllers/` 中创建控制器
-3. 在 `src/services/` 中实现业务逻辑
-4. 更新 `src/app.js` 注册新路由
-
-### 数据库操作
-
-使用 Prisma 进行数据库操作：
-
-```javascript
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
-// 查询
-const users = await prisma.user.findMany();
-
-// 创建
-const user = await prisma.user.create({
-  data: { name: 'John' }
-});
-
-// 更新
-const updatedUser = await prisma.user.update({
-  where: { id: userId },
-  data: { name: 'Jane' }
-});
-```
-
-## 部署说明
-
-### 生产环境配置
-
-1. 设置 `NODE_ENV=production`
-2. 配置强密码的数据库连接
-3. 设置安全的 JWT 密钥
-4. 配置正确的域名和 HTTPS
-5. 设置适当的资源限制
-
-### 监控和日志
-
-- 健康检查：`GET /health`
-- 使用 `morgan` 记录访问日志
-- 建议集成日志收集系统
 
 ## 故障排除
 
-### 常见问题
+### 数据库连接问题
+1. 检查 `DATABASE_URL` 环境变量配置
+2. 确保数据库服务正在运行
+3. 检查防火墙设置
 
-1. **数据库连接失败**
-   - 检查 `DATABASE_URL` 配置
-   - 确认数据库服务运行正常
+### 微信回调问题
+1. 确保服务器可从外网访问
+2. 检查微信公众号后台的服务器配置
+3. 验证 `WECHAT_TOKEN` 配置正确
 
-2. **微信接口调用失败**
-   - 检查 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`
-   - 确认微信公众号配置正确
-
-3. **COS 上传失败**
-   - 检查腾讯云 COS 配置
-   - 确认存储桶权限设置
-
-4. **RunningHub 集成失败**
-   - 检查 API 密钥和 URL
-   - 确认网络连接正常
+### RunningHub集成问题
+1. 检查 `RUNNINGHUB_API_KEY` 配置
+2. 确认工作流ID正确
+3. 验证回调URL可访问
 
 ## 许可证
 
-ISC License
+MIT

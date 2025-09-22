@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS修复测试</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .test-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .test-item { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .test-item h3 { 
+            margin: 0 0 10px 0; 
+            color: #333; 
+        }
+        img { 
+            max-width: 200px; 
+            height: auto; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            margin: 5px;
+        }
+        .url-display { 
+            font-family: monospace; 
+            background: #f8f8f8; 
+            padding: 5px; 
+            border-radius: 3px; 
+            margin: 5px 0; 
+            word-break: break-all; 
+            font-size: 12px;
+        }
+        .status { 
+            padding: 5px 10px; 
+            border-radius: 3px; 
+            font-weight: bold; 
+            margin: 5px 0;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+        }
+        .loading { 
+            background: #fff3cd; 
+            color: #856404; 
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 CORS修复测试</h1>
+        <p>测试修复后的CORS配置是否允许正确加载图片</p>
+
+        <div class="test-item">
+            <h3>📊 API服务器状态</h3>
+            <div id="api-status">检查中...</div>
+        </div>
+
+        <div class="test-item">
+            <h3>🖼️ 图片加载测试</h3>
+            <p>测试各种图片格式和路径的加载情况</p>
+            <div class="image-grid" id="image-grid">
+                <!-- 图片将通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <div class="test-item">
+            <h3>📈 测试统计</h3>
+            <div id="test-stats">
+                <div>总测试数: <span id="total-tests">0</span></div>
+                <div>成功数: <span id="success-count">0</span></div>
+                <div>失败数: <span id="error-count">0</span></div>
+                <div>成功率: <span id="success-rate">0%</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let totalTests = 0;
+        let successCount = 0;
+        let errorCount = 0;
+
+        // 要测试的图片列表
+        const testImages = [
+            'female/coats/1.jpg',
+            'female/coats/2.jpg', 
+            'female/coats/3.jpg',
+            'female/coats/4.jpg',
+            'female/coats/5.png',
+            'female/coats/6.png',
+            'female/coats/7.png',
+            'female/coats/8.png',
+            'female/coats/coat1.jpg',
+            'male/coats/1.jpg',
+            'male/coats/2.jpg',
+            'male/coats/coat1.jpg'
+        ];
+
+        function updateStats() {
+            document.getElementById('total-tests').textContent = totalTests;
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+            
+            const rate = totalTests > 0 ? Math.round((successCount / totalTests) * 100) : 0;
+            document.getElementById('success-rate').textContent = rate + '%';
+            
+            const rateElement = document.getElementById('success-rate');
+            if (rate >= 80) {
+                rateElement.style.color = '#28a745';
+            } else if (rate >= 50) {
+                rateElement.style.color = '#ffc107';
+            } else {
+                rateElement.style.color = '#dc3545';
+            }
+        }
+
+        function createImageTest(imagePath) {
+            const imageUrl = `http://localhost:4001/${imagePath}`;
+            totalTests++;
+            
+            const testDiv = document.createElement('div');
+            testDiv.innerHTML = `
+                <div class="url-display">${imageUrl}</div>
+                <img src="${imageUrl}" alt="测试图片" style="display: none;">
+                <div class="status loading">加载中...</div>
+            `;
+            
+            const img = testDiv.querySelector('img');
+            const statusDiv = testDiv.querySelector('.status');
+            
+            img.onload = function() {
+                this.style.display = 'block';
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ 加载成功';
+                successCount++;
+                updateStats();
+            };
+            
+            img.onerror = function() {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 加载失败 - CORS或文件不存在';
+                errorCount++;
+                updateStats();
+            };
+            
+            // 设置超时
+            setTimeout(() => {
+                if (statusDiv.textContent === '加载中...') {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '⏰ 加载超时';
+                    errorCount++;
+                    updateStats();
+                }
+            }, 10000);
+            
+            return testDiv;
+        }
+
+        // 检查API服务器状态
+        fetch('http://localhost:4001/health')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('api-status').innerHTML = `
+                    <div class="status success">✅ API服务器运行正常</div>
+                    <div class="url-display">状态: ${data.status}</div>
+                    <div class="url-display">时间: ${data.timestamp}</div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('api-status').innerHTML = `
+                    <div class="status error">❌ API服务器连接失败</div>
+                    <div class="url-display">错误: ${error.message}</div>
+                `;
+            });
+
+        // 创建图片测试
+        const imageGrid = document.getElementById('image-grid');
+        testImages.forEach(imagePath => {
+            const testDiv = createImageTest(imagePath);
+            imageGrid.appendChild(testDiv);
+        });
+
+        // 初始化统计
+        updateStats();
+    </script>
+</body>
+</html>

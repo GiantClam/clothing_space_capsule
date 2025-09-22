@@ -33,13 +33,23 @@ loadEnvironmentVariables();
 let mainWindow;
 
 function createWindow() {
+  // 开发模式检查
+  const isDevelopment = process.env.NODE_ENV === 'development' || 
+                       process.argv.includes('--devtools') ||
+                       process.argv.includes('--dev') ||
+                       process.argv.includes('dev') ||
+                       !app.isPackaged; // Electron未打包时视为开发模式
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      enableRemoteModule: true
+      enableRemoteModule: true,
+      webSecurity: false, // 完全禁用web安全策略以解决CORS问题
+      allowRunningInsecureContent: true, // 允许加载不安全内容
+      experimentalFeatures: true // 启用实验性功能
     },
     icon: path.join(__dirname, 'assets/icon.png'), // 可选：应用图标
     autoHideMenuBar: true, // 隐藏菜单栏
@@ -49,12 +59,7 @@ function createWindow() {
   // 加载主页面
   mainWindow.loadFile('renderer/index.html');
 
-  // 开发模式开关：检查多种dev模式条件
-  const isDevelopment = process.env.NODE_ENV === 'development' || 
-                       process.argv.includes('--devtools') ||
-                       process.argv.includes('--dev') ||
-                       process.argv.includes('dev') ||
-                       !app.isPackaged; // Electron未打包时视为开发模式
+  // 使用之前定义的isDevelopment变量
   
   console.log('🔧 开发模式检查:', {
     NODE_ENV: process.env.NODE_ENV,
@@ -86,7 +91,24 @@ function createWindow() {
 
   // 窗口关闭事件
   mainWindow.on('closed', () => {
+    console.log('🚪 主窗口已关闭');
     mainWindow = null;
+  });
+  
+  // 窗口准备关闭事件
+  mainWindow.on('close', (event) => {
+    console.log('🚨 窗口准备关闭，开始清理资源...');
+    
+    // 阻止默认关闭行为，先清理资源
+    event.preventDefault();
+    
+    // 清理资源后才真正关闭
+    cleanupAndExit();
+    
+    // 结束整个应用
+    setTimeout(() => {
+      app.quit();
+    }, 1000); // 给1秒后退出
   });
 }
 
@@ -133,6 +155,11 @@ app.whenReady().then(createWindow);
 
 // 当所有窗口关闭时退出应用
 app.on('window-all-closed', () => {
+  console.log('🚪 所有窗口已关闭，准备退出应用...');
+  
+  // 强制清理所有资源
+  cleanupAndExit();
+  
   // 在 macOS 上，应用和菜单栏通常会保持活跃状态，
   // 直到用户使用 Cmd + Q 明确退出
   if (process.platform !== 'darwin') {
@@ -149,16 +176,138 @@ app.on('activate', () => {
 });
 
 // 处理应用退出
-app.on('before-quit', () => {
-  // 在这里可以添加清理代码
-  console.log('应用正在退出...');
+app.on('before-quit', (event) => {
+  console.log('🚨 应用正在退出，开始清理资源...');
+  
+  // 确保所有资源被清理
+  cleanupAndExit();
 });
+
+// 处理应用即将退出
+app.on('will-quit', (event) => {
+  console.log('⚠️ 应用即将退出，执行最终清理...');
+  
+  // 强制退出所有进程
+  cleanupAndExit();
+});
+
+// 清理函数
+function cleanupAndExit() {
+  try {
+    console.log('🧹 开始清理资源...');
+    
+    // 关闭所有窗口
+    const allWindows = BrowserWindow.getAllWindows();
+    allWindows.forEach(window => {
+      if (!window.isDestroyed()) {
+        window.destroy();
+      }
+    });
+    
+    // 尝试通知后台服务器关闭
+    const http = require('http');
+    
+    // 通知主服务器关闭
+    const shutdownMainServer = () => {
+      return new Promise((resolve) => {
+        const req = http.request({
+          hostname: 'localhost',
+          port: 3000,
+          path: '/shutdown',
+          method: 'POST',
+          timeout: 1000
+        }, () => {
+          console.log('✅ 主服务器关闭信号已发送');
+          resolve();
+        });
+        
+        req.on('error', () => {
+          console.log('⚠️ 主服务器可能已关闭');
+          resolve();
+        });
+        
+        req.on('timeout', () => {
+          console.log('⚠️ 主服务器关闭请求超时');
+          req.destroy();
+          resolve();
+        });
+        
+        req.end();
+      });
+    };
+    
+    // 通知API服务器关闭  
+    const shutdownApiServer = () => {
+      return new Promise((resolve) => {
+        const req = http.request({
+          hostname: 'localhost',
+          port: 4001,
+          path: '/shutdown',
+          method: 'POST',
+          timeout: 1000
+        }, () => {
+          console.log('✅ API服务器关闭信号已发送');
+          resolve();
+        });
+        
+        req.on('error', () => {
+          console.log('⚠️ API服务器可能已关闭');
+          resolve();
+        });
+        
+        req.on('timeout', () => {
+          console.log('⚠️ API服务器关闭请求超时');
+          req.destroy();
+          resolve();
+        });
+        
+        req.end();
+      });
+    };
+    
+    // 异步执行清理，但不阻塞退出
+    Promise.all([shutdownMainServer(), shutdownApiServer()])
+      .then(() => {
+        console.log('🎯 清理完成');
+      })
+      .catch(() => {
+        console.log('⚠️ 部分清理操作失败，但继续退出');
+      });
+      
+  } catch (error) {
+    console.error('❌ 清理过程中出错:', error);
+  }
+}
 
 // 错误处理
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error);
+  console.log('🚨 由于未捕获异常，开始安全退出...');
+  cleanupAndExit();
+  setTimeout(() => {
+    process.exit(1);
+  }, 2000); // 给2秒后强制退出
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('未处理的 Promise 拒绝:', reason);
+  console.log('🚨 由于Promise拒绝，开始安全退出...');
+  cleanupAndExit();
+});
+
+// 处理系统信号
+process.on('SIGINT', () => {
+  console.log('接收到 SIGINT 信号，开始安全退出...');
+  cleanupAndExit();
+  setTimeout(() => {
+    process.exit(0);
+  }, 3000); // 给3秒后强制退出
+});
+
+process.on('SIGTERM', () => {
+  console.log('接收到 SIGTERM 信号，开始安全退出...');
+  cleanupAndExit();
+  setTimeout(() => {
+    process.exit(0);
+  }, 3000); // 给3秒后强制退出
 });

@@ -1,139 +1,144 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// 设备表
 model Device {
-  id              String   @id @default(cuid())
-  macAddress      String   @unique @map("mac_address")
-  deviceName      String?  @map("device_name")
-  distributionId  String?  @map("distribution_id") // 有赞分销ID
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  users User[]
-  tasks Task[]
+  id             String   @id @default(cuid())
+  macAddress     String   @unique @map("mac_address")
+  deviceName     String?  @map("device_name")
+  distributionId String?  @map("distribution_id")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  tasks          Task[]
+  users          User[]
 
   @@map("devices")
 }
 
-// 用户表
 model User {
-  id          String   @id @default(cuid())
-  openId      String   @unique @map("open_id")
-  deviceId    String   @map("device_id")
-  isVerified  Boolean  @default(false) @map("is_verified")
-  nickname    String?
-  avatar      String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  device      Device   @relation(fields: [deviceId], references: [id])
-  tasks       Task[]
-  messages    WechatMessage[]
+  id         String          @id @default(cuid())
+  openId     String          @unique @map("open_id")
+  deviceId   String          @map("device_id")
+  isVerified Boolean         @default(false) @map("is_verified")
+  nickname   String?
+  avatar     String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  tasks      Task[]
+  device     Device          @relation(fields: [deviceId], references: [id])
+  messages   WechatMessage[]
 
   @@map("users")
 }
 
-// 衣服分类表
 model Category {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  parentId  String?  @map("parent_id")
-  level     Int      @default(1) // 1: 一级分类, 2: 二级分类
-  sortOrder Int      @default(0) @map("sort_order")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // 关联
+  parentId  String?    @map("parent_id")
+  level     Int        @default(1)
+  sortOrder Int        @default(0) @map("sort_order")
+  isActive  Boolean    @default(true) @map("is_active")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
   parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children  Category[] @relation("CategoryHierarchy")
   clothes   Clothes[]
 
-  // 唯一约束：同一父级下不能有同名分类
   @@unique([name, parentId])
   @@map("categories")
 }
 
-// 衣服表
 model Clothes {
-  id              String   @id @default(cuid())
-  categoryId      String   @map("category_id")
-  name            String
-  imageUrl        String   @map("image_url")
-  prompt          String
-  description     String?
-  price           Float?
-  youzanProductId String?  @map("youzan_product_id") // 有赞商品ID
-  youzanUrl       String?  @map("youzan_url") // 有赞商品链接（备用）
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  categoryId  String   @map("category_id")
+  name        String
+  imageUrl    String   @map("image_url")
+  description String?
+  price       Float?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  purchaseUrl String?  @map("purchase_url")
+  detailDesc  String?  @map("detail_desc")
+  generalDesc String?  @map("general_desc")
+  category    Category @relation(fields: [categoryId], references: [id])
+  bottomTasks Task[]   @relation("TaskBottomClothes")
+  topTasks    Task[]   @relation("TaskTopClothes")
 
-  // 关联
-  category Category @relation(fields: [categoryId], references: [id])
-  topTasks Task[] @relation("TaskTopClothes")
-  bottomTasks Task[] @relation("TaskBottomClothes")
-
-  // 唯一约束：同一分类下不能有同名衣服
   @@unique([name, categoryId])
   @@map("clothes")
 }
 
-// 任务表
 model Task {
-  id                String   @id @default(cuid())
-  userId            String   @map("user_id")
-  deviceId          String   @map("device_id")
-  status            String @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
-  runninghubTaskId  String?  @map("runninghub_task_id")
-  userPhotoUrl      String?  @map("user_photo_url")
-  userPhotoFilename String?  @map("user_photo_filename") // RunningHub返回的文件名
-  topClothesId      String?  @map("top_clothes_id")     // 上衣ID
-  bottomClothesId   String?  @map("bottom_clothes_id")  // 下衣ID
-  topClothesFilename String? @map("top_clothes_filename") // 上衣图片文件名
-  bottomClothesFilename String? @map("bottom_clothes_filename") // 下衣图片文件名
-  resultUrl         String?  @map("result_url")
-  distributionUrl   String?  @map("distribution_url") // 生成的分销链接
-  errorMessage      String?  @map("error_message")
-  workflowId        String?  @map("workflow_id")      // 使用的工作流ID
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  user         User    @relation(fields: [userId], references: [id])
-  device       Device  @relation(fields: [deviceId], references: [id])
-  topClothes   Clothes? @relation("TaskTopClothes", fields: [topClothesId], references: [id])
-  bottomClothes Clothes? @relation("TaskBottomClothes", fields: [bottomClothesId], references: [id])
+  id                    String   @id @default(cuid())
+  userId                String   @map("user_id")
+  deviceId              String   @map("device_id")
+  status                String   @default("PENDING")
+  runninghubTaskId      String?  @map("runninghub_task_id")
+  userPhotoUrl          String?  @map("user_photo_url")
+  userPhotoFilename     String?  @map("user_photo_filename")
+  topClothesId          String?  @map("top_clothes_id")
+  bottomClothesId       String?  @map("bottom_clothes_id")
+  topClothesFilename    String?  @map("top_clothes_filename")
+  bottomClothesFilename String?  @map("bottom_clothes_filename")
+  resultUrl             String?  @map("result_url")
+  distributionUrl       String?  @map("distribution_url")
+  errorMessage          String?  @map("error_message")
+  workflowId            String?  @map("workflow_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  bottomClothes         Clothes? @relation("TaskBottomClothes", fields: [bottomClothesId], references: [id])
+  device                Device   @relation(fields: [deviceId], references: [id])
+  topClothes            Clothes? @relation("TaskTopClothes", fields: [topClothesId], references: [id])
+  user                  User     @relation(fields: [userId], references: [id])
 
   @@map("tasks")
 }
 
-// 微信消息表
 model WechatMessage {
   id          String   @id @default(cuid())
   userId      String   @map("user_id")
-  messageType String   @map("message_type") // text, image, link
+  messageType String   @map("message_type")
   content     String
   sentAt      DateTime @default(now()) @map("sent_at")
-
-  // 关联
-  user User @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@map("wechat_messages")
 }
 
-// 任务状态常量 (SQLite 使用 String 替代 enum)
-// 可选值: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+// 新增微信二维码模型
+model WechatQRCode {
+  id          String   @id @default(cuid())
+  sceneStr    String   @unique @map("scene_str") // 场景值(设备MAC地址)
+  ticket      String   // 二维码ticket
+  expireTime  DateTime @map("expire_time") // 过期时间
+  deviceId    String?  @map("device_id") // 关联设备ID
+  userId      String?  @map("user_id") // 关联用户ID
+  status      String   @default("UNUSED") // 二维码状态
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@map("wechat_qr_codes")
+}
+
+// 新增微信用户模型
+model WechatUser {
+  id              String   @id @default(cuid())
+  openid          String   @unique // 微信用户唯一标识
+  deviceId        String?  @map("device_id") // 关联设备ID
+  subscribe       Boolean  @default(false) // 是否关注
+  subscribeTime   DateTime? @map("subscribe_time") // 关注时间
+  unsubscribeTime DateTime? @map("unsubscribe_time") // 取消关注时间
+  nickname        String?  // 昵称
+  headimgurl      String?  @map("headimgurl") // 头像
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("wechat_users")
+}

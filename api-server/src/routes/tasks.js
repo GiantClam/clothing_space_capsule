@@ -5,6 +5,8 @@ const { authenticateDevice } = require('./auth');
 const axios = require('axios');
 const multer = require('multer');
 const youzanService = require('../services/youzan');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -48,24 +50,44 @@ router.post('/upload-photo', authenticateDevice, async (req, res) => {
       
       const deviceId = req.device.id;
       
-      // 验证设备是否有已验证的用户
-      const device = await prisma.device.findUnique({
-        where: { id: deviceId },
-        include: {
-          users: {
-            where: { isVerified: true },
-            take: 1
+      // 在开发环境下跳过微信验证，直接使用设备信息
+      const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+      
+      let user = null;
+      if (isDevelopment) {
+        // 开发环境：查找或创建默认用户
+        user = await prisma.user.findFirst({
+          where: {
+            deviceId: deviceId
           }
-        }
-      });
-      
-      if (!device || device.users.length === 0) {
-        return res.status(403).json({ 
-          error: '请先关注微信公众号完成验证' 
         });
+        
+        if (!user) {
+          // 创建默认测试用户
+          user = await prisma.user.create({
+            data: {
+              openId: `test_user_${deviceId}`,
+              deviceId: deviceId,
+              isVerified: true
+            }
+          });
+          console.log('📝 开发环境：自动创建测试用户:', user.id);
+        }
+      } else {
+        // 生产环境：验证设备是否有已验证的用户
+        user = await prisma.user.findFirst({
+          where: {
+            deviceId: deviceId,
+            isVerified: true
+          }
+        });
+        
+        if (!user) {
+          return res.status(403).json({ 
+            error: '请先关注微信公众号完成验证' 
+          });
+        }
       }
-      
-      const user = device.users[0];
       
       // 直接上传到RunningHub（使用文件buffer）
       let filename = null;
@@ -111,8 +133,11 @@ router.post('/start-tryon', authenticateDevice, [
   body('bottomClothesId').optional()
 ], async (req, res) => {
   try {
+    console.log('📥 收到启动试穿任务请求:', req.body);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ 输入验证失败:', errors.array());
       return res.status(400).json({
         error: '输入验证失败',
         details: errors.array()
@@ -121,6 +146,8 @@ router.post('/start-tryon', authenticateDevice, [
 
     const { taskId, topClothesId, bottomClothesId } = req.body;
     const { deviceId } = req.device;
+    
+    console.log('🔍 验证任务和设备信息:', { taskId, deviceId });
 
     // 验证任务是否存在且属于当前设备
     const task = await prisma.task.findFirst({
@@ -135,8 +162,11 @@ router.post('/start-tryon', authenticateDevice, [
     });
 
     if (!task) {
+      console.error('❌ 任务不存在或无法处理:', { taskId, deviceId });
       return res.status(404).json({ error: '任务不存在或无法处理' });
     }
+    
+    console.log('✅ 任务验证通过:', task.id);
 
     // 验证上衣是否存在
     const topClothes = await prisma.clothes.findUnique({
@@ -144,8 +174,11 @@ router.post('/start-tryon', authenticateDevice, [
     });
 
     if (!topClothes || !topClothes.isActive) {
+      console.error('❌ 上衣不存在或未激活:', { topClothesId });
       return res.status(404).json({ error: '上衣不存在' });
     }
+    
+    console.log('✅ 上衣验证通过:', topClothes.name);
 
     // 验证下衣（如果提供）
     let bottomClothes = null;
@@ -155,8 +188,11 @@ router.post('/start-tryon', authenticateDevice, [
       });
 
       if (!bottomClothes || !bottomClothes.isActive) {
+        console.error('❌ 下衣不存在或未激活:', { bottomClothesId });
         return res.status(404).json({ error: '下衣不存在' });
       }
+      
+      console.log('✅ 下衣验证通过:', bottomClothes.name);
     }
 
     // 上传衣服图片到RunningHub
@@ -164,15 +200,19 @@ router.post('/start-tryon', authenticateDevice, [
     let bottomFilename = null;
 
     try {
+      console.log('📤 开始上传上衣图片到RunningHub:', topClothes.imageUrl);
       // 上传上衣图片
       topFilename = (await uploadToRunningHub(topClothes.imageUrl, 'clothes', `top_${topClothes.id}.jpg`)).filename;
+      console.log('✅ 上衣图片上传成功:', topFilename);
       
       if (bottomClothes) {
+        console.log('📤 开始上传下衣图片到RunningHub:', bottomClothes.imageUrl);
         // 上传下衣图片
         bottomFilename = (await uploadToRunningHub(bottomClothes.imageUrl, 'clothes', `bottom_${bottomClothes.id}.jpg`)).filename;
+        console.log('✅ 下衣图片上传成功:', bottomFilename);
       }
     } catch (uploadError) {
-      console.error('上传衣服图片到RunningHub失败:', uploadError);
+      console.error('❌ 上传衣服图片到RunningHub失败:', uploadError);
       return res.status(500).json({
         error: '衣服图片上传失败',
         message: uploadError.message
@@ -180,6 +220,7 @@ router.post('/start-tryon', authenticateDevice, [
     }
 
     // 更新任务信息
+    console.log('🔄 更新任务信息');
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -190,15 +231,42 @@ router.post('/start-tryon', authenticateDevice, [
         status: 'PROCESSING'
       }
     });
+    console.log('✅ 任务信息更新完成');
 
     // 启动RunningHub工作流
     try {
-      const workflowId = bottomClothes ? '1965625784712970242' : '1957012453269889026';
+      console.log('🚀 开始启动RunningHub工作流');
+      // 使用环境变量中的工作流ID
+      const workflowId = bottomClothes 
+        ? (process.env.TOP_BOTTOM_WORKFLOW_ID || 'your_top_bottom_workflow_id_here')
+        : (process.env.SINGLE_ITEM_WORKFLOW_ID || 'your_single_item_workflow_id_here');
+      
+      // 验证工作流ID是否已配置
+      if (workflowId.includes('your_') || workflowId.includes('_here')) {
+        throw new Error('请在环境变量中配置真实的工作流ID');
+      }
+      
+      console.log('🔧 工作流配置:', {
+        workflowId,
+        taskId,
+        userPhotoFilename: task.userPhotoFilename,
+        topClothesGeneralDesc: topClothes.generalDesc,
+        topClothesFilename: topFilename,
+        topClothesDetailDesc: topClothes.detailDesc,
+        bottomClothesGeneralDesc: bottomClothes?.generalDesc,
+        bottomClothesFilename: bottomFilename,
+        bottomClothesDetailDesc: bottomClothes?.detailDesc
+      });
+      
       const runninghubTaskResult = await startRunningHubWorkflow({
         taskId: taskId,
         userPhotoFilename: task.userPhotoFilename,
+        topClothesGeneralDesc: topClothes.generalDesc,
         topClothesFilename: topFilename,
+        topClothesDetailDesc: topClothes.detailDesc,
+        bottomClothesGeneralDesc: bottomClothes?.generalDesc,
         bottomClothesFilename: bottomFilename,
+        bottomClothesDetailDesc: bottomClothes?.detailDesc,
         workflowId: workflowId
       });
 
@@ -207,6 +275,7 @@ router.post('/start-tryon', authenticateDevice, [
       }
 
       // 更新RunningHub任务ID
+      console.log('🔄 更新RunningHub任务ID');
       await prisma.task.update({
         where: { id: taskId },
         data: {
@@ -226,7 +295,7 @@ router.post('/start-tryon', authenticateDevice, [
       });
 
     } catch (workflowError) {
-      console.error('启动RunningHub工作流失败:', workflowError);
+      console.error('❌ 启动RunningHub工作流失败:', workflowError);
       
       await prisma.task.update({
         where: { id: taskId },
@@ -243,7 +312,7 @@ router.post('/start-tryon', authenticateDevice, [
     }
 
   } catch (error) {
-    console.error('启动试穿任务错误:', error);
+    console.error('❌ 启动试穿任务错误:', error);
     res.status(500).json({ error: '启动试穿任务失败' });
   }
 });
@@ -265,7 +334,7 @@ router.get('/:taskId', authenticateDevice, async (req, res) => {
             id: true,
             name: true,
             imageUrl: true,
-            youzanUrl: true
+            purchaseUrl: true
           }
         },
         bottomClothes: {
@@ -273,7 +342,7 @@ router.get('/:taskId', authenticateDevice, async (req, res) => {
             id: true,
             name: true,
             imageUrl: true,
-            youzanUrl: true
+            purchaseUrl: true
           }
         }
       }
@@ -332,12 +401,20 @@ router.get('/', authenticateDevice, async (req, res) => {
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          clothes: {
+          topClothes: {
             select: {
               id: true,
               name: true,
               imageUrl: true,
-              youzanUrl: true
+              purchaseUrl: true
+            }
+          },
+          bottomClothes: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              purchaseUrl: true
             }
           }
         }
@@ -441,8 +518,8 @@ async function uploadToRunningHub(fileInput, fileType = 'user_photo', originalNa
     const fs = require('fs');
     const path = require('path');
     
-    if (!process.env.RUNNINGHUB_API_KEY) {
-      throw new Error('请先配置RunningHub API Key');
+    if (!process.env.RUNNINGHUB_API_KEY || process.env.RUNNINGHUB_API_KEY === 'your_actual_runninghub_api_key_here') {
+      throw new Error('请配置真实的RunningHub API Key');
     }
     
     let fileBuffer;
@@ -463,6 +540,13 @@ async function uploadToRunningHub(fileInput, fileType = 'user_photo', originalNa
       }
     };
     
+    // 处理相对路径，转换为完整CDN URL
+    if (typeof fileInput === 'string' && fileInput.startsWith('/')) {
+      // 相对路径转换为完整CDN URL
+      fileInput = `https://clothing.0086studios.xyz/clothinges${fileInput}`;
+      console.log('🔄 相对路径转换为完整CDN URL:', fileInput);
+    }
+    
     if (Buffer.isBuffer(fileInput)) {
       // 直接传入的Buffer
       fileBuffer = fileInput;
@@ -477,10 +561,12 @@ async function uploadToRunningHub(fileInput, fileType = 'user_photo', originalNa
       fileName = `image_${Date.now()}.${mimeType.includes('png') ? 'png' : (mimeType.includes('webp') ? 'webp' : 'jpg')}`;
     } else if (/^https?:\/\//i.test(fileInput)) {
       // 远程URL先下载
+      console.log('📥 下载远程文件:', fileInput);
       const response = await axios.get(fileInput, { responseType: 'arraybuffer' });
       fileBuffer = Buffer.from(response.data);
       fileName = path.basename(new URL(fileInput).pathname) || fileName;
       mimeType = response.headers['content-type'] || inferMime(fileName);
+      console.log('✅ 文件下载完成:', { fileName, fileSize: fileBuffer.length, mimeType });
     } else {
       // 本地文件路径
       const resolvedPath = path.isAbsolute(fileInput) ? fileInput : path.resolve(process.cwd(), fileInput);
@@ -514,8 +600,8 @@ async function uploadToRunningHub(fileInput, fileType = 'user_photo', originalNa
     // 发送请求
     const uploadResponse = await axios.post(`${baseUrl}/task/openapi/upload`, formData, {
       headers: {
-        ...formData.getHeaders(),
-        'Host': new URL(baseUrl).hostname
+        ...formData.getHeaders()
+        // 移除了 'Host': new URL(baseUrl).hostname 头部
       },
       maxContentLength: Infinity,
       maxBodyLength: Infinity
@@ -543,12 +629,16 @@ async function uploadToRunningHub(fileInput, fileType = 'user_photo', originalNa
 }
 
 // 启动 RunningHub 工作流
-async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesFilename, bottomClothesFilename, workflowId }) {
+async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesGeneralDesc, topClothesFilename, topClothesDetailDesc, bottomClothesGeneralDesc, bottomClothesFilename, bottomClothesDetailDesc, workflowId }) {
   try {
-    if (!process.env.RUNNINGHUB_API_KEY) {
-      throw new Error('请先配置RunningHub API Key');
+    if (!process.env.RUNNINGHUB_API_KEY || process.env.RUNNINGHUB_API_KEY === 'your_actual_runninghub_api_key_here') {
+      throw new Error('请配置真实的RunningHub API Key');
     }
-    
+
+    let clothingesPrompt = "solid-color background in Studio.Have this person put on the given clothes.";
+    let clothingesGeneralPrompt = "This person is wearing ";
+    let clothingesDetailPrompt = "";
+
     // 构造nodeInfoList
     const nodeInfoList = [
       {
@@ -566,6 +656,14 @@ async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesFi
         fieldName: "image",
         fieldValue: topClothesFilename
       });
+
+      // 添加空值检查
+      if (topClothesGeneralDesc) {
+        clothingesGeneralPrompt += topClothesGeneralDesc;
+      }
+      if (topClothesDetailDesc) {
+        clothingesDetailPrompt += topClothesDetailDesc;
+      }
     }
     
     if (bottomClothesFilename) {
@@ -575,7 +673,33 @@ async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesFi
         fieldName: "image",
         fieldValue: bottomClothesFilename
       });
+
+      // 只有当上衣存在时才添加" and "，否则去掉前导空格
+      if (topClothesFilename && topClothesGeneralDesc) {
+        clothingesGeneralPrompt += " and ";
+      }
+      if (bottomClothesGeneralDesc) {
+        clothingesGeneralPrompt += bottomClothesGeneralDesc + ". ";
+      } else {
+        clothingesGeneralPrompt += ". ";
+      }
+      if (bottomClothesDetailDesc) {
+        clothingesDetailPrompt += bottomClothesDetailDesc;
+      }
     }
+
+    clothingesPrompt = clothingesPrompt + clothingesGeneralPrompt + clothingesDetailPrompt; 
+
+    console.log('🚀 添加服装节点信息:', {
+      topClothesFilename: topClothesFilename,
+      bottomClothesFilename: bottomClothesFilename
+    });
+
+    nodeInfoList.push({
+      nodeId: "313",
+      fieldName: "text",
+      fieldValue: clothingesPrompt
+    });
     
     const requestData = {
       apiKey: process.env.RUNNINGHUB_API_KEY,
@@ -593,8 +717,8 @@ async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesFi
     
     const response = await axios.post(`${baseUrl}/task/openapi/create`, requestData, {
       headers: {
-        'Content-Type': 'application/json',
-        'Host': new URL(baseUrl).hostname
+        'Content-Type': 'application/json'
+        // 移除了 'Host': new URL(baseUrl).hostname 头部
       }
     });
     
@@ -630,8 +754,8 @@ async function startRunningHubWorkflow({ taskId, userPhotoFilename, topClothesFi
 // 查询 RunningHub 任务状态
 async function getRunningHubTaskStatus(runninghubTaskId) {
   try {
-    if (!process.env.RUNNINGHUB_API_KEY) {
-      throw new Error('请先配置RunningHub API Key');
+    if (!process.env.RUNNINGHUB_API_KEY || process.env.RUNNINGHUB_API_KEY === 'your_actual_runninghub_api_key_here') {
+      throw new Error('请配置真实的RunningHub API Key');
     }
     
     const baseUrl = (process.env.RUNNINGHUB_BASE_URL || 'https://www.runninghub.cn').replace(/\/$/, '');
@@ -656,7 +780,12 @@ async function getRunningHubTaskStatus(runninghubTaskId) {
     console.log('📥 RunningHub状态查询响应:', response.data);
     
     if (response.data.code === 0 && response.data.data) {
-      const taskStatus = response.data.data.taskStatus;
+      // 根据RunningHub API的实际响应格式处理状态
+      // 如果response.data.data是字符串，直接使用它作为任务状态
+      // 如果是对象，从taskStatus属性获取
+      const taskStatus = typeof response.data.data === 'string' ? 
+                        response.data.data : 
+                        response.data.data.taskStatus;
       console.log('📊 任务状态:', taskStatus);
       
       return {
@@ -676,11 +805,11 @@ async function getRunningHubTaskStatus(runninghubTaskId) {
   }
 }
 
-// 获取 RunningHub 任务结果
-async function getRunningHubTaskResult(runninghubTaskId) {
+// 获取 RunningHub 任务结果并上传到 COS
+async function getRunningHubTaskResultAndUploadToCOS(runninghubTaskId, taskId) {
   try {
-    if (!process.env.RUNNINGHUB_API_KEY) {
-      throw new Error('请先配置RunningHub API Key');
+    if (!process.env.RUNNINGHUB_API_KEY || process.env.RUNNINGHUB_API_KEY === 'your_actual_runninghub_api_key_here') {
+      throw new Error('请配置真实的RunningHub API Key');
     }
     
     const baseUrl = (process.env.RUNNINGHUB_BASE_URL || 'https://www.runninghub.cn').replace(/\/$/, '');
@@ -708,9 +837,36 @@ async function getRunningHubTaskResult(runninghubTaskId) {
       const resultUrl = response.data.data[0].fileUrl;
       console.log('✅ 获取结果成功:', resultUrl);
       
+      // 下载结果图片
+      const imageResponse = await axios.get(resultUrl, { responseType: 'arraybuffer' });
+      const fileBuffer = Buffer.from(imageResponse.data);
+      
+      // 生成COS文件名
+      const fileExtension = path.extname(new URL(resultUrl).pathname) || '.jpg';
+      const cosKey = `results/${taskId}/result${fileExtension}`;
+      
+      // 保存到临时文件
+      const tempFilePath = path.join('uploads', `temp-result-${taskId}${fileExtension}`);
+      const tempDir = path.dirname(tempFilePath);
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      fs.writeFileSync(tempFilePath, fileBuffer);
+      
+      // 上传到COS
+      const { uploadToCOS } = require('./upload');
+      const finalResultUrl = await uploadToCOS(tempFilePath, cosKey);
+      
+      // 清理临时文件
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+      
+      console.log('✅ 结果上传到COS成功:', finalResultUrl);
+      
       return {
         success: true,
-        resultUrl: resultUrl,
+        resultUrl: finalResultUrl,
         data: response.data.data
       };
     } else {
@@ -720,8 +876,8 @@ async function getRunningHubTaskResult(runninghubTaskId) {
     }
     
   } catch (error) {
-    console.error('❌ 获取 RunningHub 任务结果失败:', error.message);
-    throw new Error(`获取 RunningHub 任务结果失败: ${error.message}`);
+    console.error('❌ 获取 RunningHub 任务结果并上传到COS失败:', error.message);
+    throw new Error(`获取 RunningHub 任务结果并上传到COS失败: ${error.message}`);
   }
 }
 
@@ -760,8 +916,8 @@ async function pollTaskStatus() {
           const taskStatus = statusResult.status;
           
           if (taskStatus === 'SUCCESS') {
-            // 获取任务结果
-            const result = await getRunningHubTaskResult(task.runninghubTaskId);
+            // 获取任务结果并上传到COS
+            const result = await getRunningHubTaskResultAndUploadToCOS(task.runninghubTaskId, task.id);
             
             if (result.success) {
               // 更新任务状态和结果
@@ -806,4 +962,4 @@ async function pollTaskStatus() {
 // 启动轮询定时器（每5秒执行一次）
 setInterval(pollTaskStatus, 5000);
 
-module.exports = router;
+module.exports = { router, uploadToRunningHub };

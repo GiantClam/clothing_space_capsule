@@ -1,16 +1,40 @@
+const fs = require('fs');
+const path = require('path');
+
+// 确保日志目录存在
+const logDir = path.join(__dirname, '../../logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// 写入日志到文件
+function writeLogToFile(logData) {
+  const date = new Date().toISOString().split('T')[0];
+  const logFile = path.join(logDir, `app-${date}.log`);
+  
+  const logEntry = {
+    ...logData,
+    timestamp: new Date().toISOString()
+  };
+  
+  fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
+}
+
 // 结构化日志中间件
 const logger = (req, res, next) => {
   const start = Date.now();
   
   // 记录请求信息
-  console.log({
+  const requestData = {
     type: 'request',
     method: req.method,
     url: req.originalUrl,
-    timestamp: new Date().toISOString(),
     ip: req.ip || req.connection.remoteAddress,
     userAgent: req.get('User-Agent')
-  });
+  };
+  
+  console.log(requestData);
+  writeLogToFile(requestData);
   
   // 监听响应完成
   res.on('finish', () => {
@@ -20,8 +44,7 @@ const logger = (req, res, next) => {
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
-      duration: `${duration}ms`,
-      timestamp: new Date().toISOString()
+      duration: `${duration}ms`
     };
     
     if (res.statusCode >= 400) {
@@ -29,6 +52,8 @@ const logger = (req, res, next) => {
     } else {
       console.log(logData);
     }
+    
+    writeLogToFile(logData);
   });
   
   next();
@@ -41,14 +66,16 @@ const apiLogger = (req, res, next) => {
     
     res.on('finish', () => {
       const duration = Date.now() - start;
-      console.log({
+      const logData = {
         type: 'api_request',
         method: req.method,
         endpoint: req.originalUrl,
         status: res.statusCode,
-        duration: `${duration}ms`,
-        timestamp: new Date().toISOString()
-      });
+        duration: `${duration}ms`
+      };
+      
+      console.log(logData);
+      writeLogToFile(logData);
     });
   }
   

@@ -16,13 +16,32 @@ class AppState {
         this.selectedStyle = null;
         this.currentTask = null;
         this.currentTaskId = null; // API Server中的任务ID
-        this.apiBaseUrl = 'http://localhost:3000'; // 本地服务器（保持兼容）
+        this.apiBaseUrl = 'http://localhost:4001'; // API服务器（修复为正确端口）
         this.apiServerUrl = 'http://localhost:4001'; // 新的 API Server
         this.currentGender = 'female';
         this.currentCategory = 'tops-bottoms';
         this.currentSubCategory = 'tops';
         this.isDressSelected = false;
         this.configCache = null;
+        this.resultImageUrl = null; // 添加结果图片URL存储
+        this.resizeTimer = null; // 添加窗口大小调整防抖定时器
+        this.macAddress = null; // 设备MAC地址
+        this.wechatQRCode = null; // 微信二维码信息
+        this.wechatCheckInterval = null; // 微信关注状态检查定时器
+    }
+
+    // 处理窗口大小变化
+    handleWindowResize() {
+        // 防抖处理，避免频繁调整
+        if (this.resizeTimer) {
+            clearTimeout(this.resizeTimer);
+        }
+        
+        this.resizeTimer = setTimeout(() => {
+            if (this.currentPage === 'results-page' && this.resultImageUrl) {
+                this.adjustImageContainer();
+            }
+        }, 300);
     }
 
     async setPage(pageId) {
@@ -30,6 +49,15 @@ class AppState {
         const currentPageEl = document.getElementById(this.currentPage);
         if (currentPageEl) {
             currentPageEl.classList.remove('active');
+        }
+
+        // 如果离开结果页面，清理事件监听器
+        if (this.currentPage === 'results-page') {
+            window.removeEventListener('resize', this.handleWindowResize.bind(this));
+            if (this.resizeTimer) {
+                clearTimeout(this.resizeTimer);
+                this.resizeTimer = null;
+            }
         }
 
         // 显示新页面
@@ -45,6 +73,9 @@ class AppState {
 
     async onPageChange(pageId) {
         switch(pageId) {
+            case 'welcome-page':
+                await this.initializeWelcomePage();
+                break;
             case 'profile-page':
                 this.initializeProfilePage();
                 break;
@@ -57,6 +88,8 @@ class AppState {
                 break;
             case 'results-page':
                 this.startFittingProcess();
+                // 添加窗口大小变化监听器
+                window.addEventListener('resize', this.handleWindowResize.bind(this));
                 break;
             case 'download-page':
                 this.generateDownloadQR();
@@ -65,7 +98,165 @@ class AppState {
         }
     }
 
+    // 初始化欢迎页面
+    async initializeWelcomePage() {
+        console.log('📱 初始化欢迎页面...');
+        
+        // 获取设备MAC地址
+        await this.getMacAddress();
+        
+        // 生成微信二维码
+        await this.generateWechatQRCode();
+        
+        // 开始检查微信关注状态
+        this.startWechatStatusCheck();
+    }
+
+    // 获取设备MAC地址
+    async getMacAddress() {
+        try {
+            // 在Electron环境中获取MAC地址
+            if (typeof require !== 'undefined') {
+                const os = require('os');
+                const interfaces = os.networkInterfaces();
+                
+                // 查找第一个有效的MAC地址
+                for (const name of Object.keys(interfaces)) {
+                    for (const iface of interfaces[name]) {
+                        if (!iface.internal && iface.mac && iface.mac !== '00:00:00:00:00:00') {
+                            this.macAddress = iface.mac;
+                            console.log('📱 获取到设备MAC地址:', this.macAddress);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // 如果无法获取真实MAC地址，生成一个模拟的
+            this.macAddress = '00:11:22:33:44:55';
+            console.log('📱 使用模拟MAC地址:', this.macAddress);
+        } catch (error) {
+            console.error('❌ 获取MAC地址失败:', error);
+            this.macAddress = '00:11:22:33:44:55'; // 默认值
+        }
+    }
+
+    // 生成微信二维码
+    async generateWechatQRCode() {
+        try {
+            console.log('🔍 检查API客户端状态:', {
+                hasApiClient: !!window.apiClient,
+                initialized: window.apiClient ? window.apiClient.initialized : false
+            });
+            
+            // 确保API客户端已初始化
+            if (!window.apiClient) {
+                console.log('⚠️ API客户端未初始化，等待初始化完成...');
+                await window.apiClient.initialize();
+            }
+            
+            if (!window.apiClient.initialized) {
+                console.log('🔄 API客户端尚未初始化，执行初始化...');
+                await window.apiClient.initialize();
+                console.log('✅ API客户端初始化完成');
+            }
+            
+            console.log('📱 生成微信关注二维码，使用MAC地址:', this.macAddress);
+            
+            // 调用API生成二维码
+            const response = await window.apiClient.generateWechatQRCode(null, this.macAddress);
+            
+            if (response.success) {
+                this.wechatQRCode = response.qrCode;
+                
+                // 更新页面上的二维码显示
+                const qrImg = document.getElementById('wechat-qr-img');
+                if (qrImg) {
+                    qrImg.src = response.qrCode.dataURL;
+                    console.log('✅ 微信二维码生成成功');
+                }
+            } else {
+                throw new Error(response.error || '生成二维码失败');
+            }
+        } catch (error) {
+            console.error('❌ 生成微信二维码失败:', error);
+            this.showError('生成微信二维码失败: ' + error.message);
+        }
+    }
+
+    // 开始体验按钮点击事件
+    async function startExperience() {
+        try {
+            console.log('🚀 用户点击开始体验按钮');
+            
+            // 检查是否已经关注了公众号
+            if (appState.macAddress && window.apiClient) {
+                const response = await window.apiClient.checkWechatStatus(appState.macAddress, 'mac');
+                
+                if (response.success && response.isSubscribed) {
+                    console.log('✅ 用户已关注公众号，直接跳转到个人信息页面');
+                    await appState.setPage('profile-page');
+                    return;
+                }
+            }
+            
+            // 如果未关注，提示用户先关注公众号
+            appState.showError('请先微信扫码关注公众号后再开始体验');
+        } catch (error) {
+            console.error('检查微信关注状态失败:', error);
+            appState.showError('检查微信关注状态失败: ' + error.message);
+        }
+    }
+
+    // 打开配置页面
+    function openConfigPage() {
+        appState.setPage('config-page');
+    }
+
+    // 开始检查微信关注状态
+    startWechatStatusCheck() {
+        // 清除之前的定时器
+        if (this.wechatCheckInterval) {
+            clearInterval(this.wechatCheckInterval);
+        }
+        
+        // 每3秒检查一次关注状态
+        this.wechatCheckInterval = setInterval(async () => {
+            try {
+                if (this.macAddress && window.apiClient) {
+                    const response = await window.apiClient.checkWechatStatus(this.macAddress, 'mac');
+                    
+                    if (response.success && response.isSubscribed) {
+                        console.log('✅ 用户已关注公众号');
+                        
+                        // 清除定时器
+                        if (this.wechatCheckInterval) {
+                            clearInterval(this.wechatCheckInterval);
+                            this.wechatCheckInterval = null;
+                        }
+                        
+                        // 自动跳转到个人信息页面
+                        await this.setPage('profile-page');
+                    }
+                }
+            } catch (error) {
+                console.error('检查微信关注状态失败:', error);
+            }
+        }, 3000);
+    }
+
+    // 停止检查微信关注状态
+    stopWechatStatusCheck() {
+        if (this.wechatCheckInterval) {
+            clearInterval(this.wechatCheckInterval);
+            this.wechatCheckInterval = null;
+        }
+    }
+
     initializeProfilePage() {
+        // 停止微信状态检查
+        this.stopWechatStatusCheck();
+        
         // 摄像头已经在应用启动时初始化，直接启用UI
         if (cameraInitialized && cameraVideo && cameraVideo.srcObject) {
             console.log('摄像头已准备就绪，直接启用UI');
@@ -349,10 +540,10 @@ class AppState {
                 itemsToShow = clothesResponse.data.clothes.map(item => ({
                     id: item.id,
                     name: item.name,
-                    image: item.imageUrl,
+                    image: this.getImageUrl(item.imageUrl), // 使用辅助方法转换图片URL
                     description: item.description,
                     prompt: item.prompt,
-                    youzanUrl: item.youzanUrl
+                    purchaseUrl: item.purchaseUrl
                 }));
                 console.log('✅ 映射后的服装数据:', itemsToShow.length, '件');
                 
@@ -406,20 +597,49 @@ class AppState {
         return false;
     }
 
+    // 获取选中的服装信息
     getSelectedClothingInfo() {
         if (this.selectedDress) {
             return {
-                type: 'dress',
-                item: this.selectedDress.item
+                name: this.selectedDress.item.name,
+                category: '连衣裙',
+                imageUrl: this.selectedDress.item.imageUrl,
+                purchaseUrl: this.selectedDress.item.purchaseUrl
             };
         } else if (this.selectedTopBottom) {
-            return {
-                type: 'topBottom',
-                tops: this.selectedTopBottom.tops,
-                bottoms: this.selectedTopBottom.bottoms
-            };
+            const tops = this.selectedTopBottom.tops;
+            const bottoms = this.selectedTopBottom.bottoms;
+            
+            if (tops && bottoms) {
+                return {
+                    name: `${tops.name} + ${bottoms.name}`,
+                    category: '上衣+下衣',
+                    imageUrl: tops.imageUrl, // 使用上衣图片
+                    purchaseUrl: tops.purchaseUrl || bottoms.purchaseUrl
+                };
+            } else if (tops) {
+                return {
+                    name: tops.name,
+                    category: '上衣',
+                    imageUrl: tops.imageUrl,
+                    purchaseUrl: tops.purchaseUrl
+                };
+            } else if (bottoms) {
+                return {
+                    name: bottoms.name,
+                    category: '下衣',
+                    imageUrl: bottoms.imageUrl,
+                    purchaseUrl: bottoms.purchaseUrl
+                };
+            }
         }
-        return null;
+        
+        return {
+            name: '未选择服装',
+            category: '',
+            imageUrl: '',
+            purchaseUrl: ''
+        };
     }
 
     showApiErrorMessage(errorMessage = 'API服务器连接失败') {
@@ -485,6 +705,27 @@ class AppState {
 
     // 本地数据方法已移除 - 客户端只从API服务器加载数据
 
+    // 辅助方法：将相对路径转换为完整的HTTP URL
+    getImageUrl(relativePath) {
+        if (!relativePath) {
+            return '';
+        }
+        
+        // 如果已经是完整的URL（以http或https开头），直接返回
+        if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+            return relativePath;
+        }
+        
+        // 如果以斜杠开头，去掉斜杠
+        const cleanPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+        
+        // 根据项目记忆中的规范，为相对路径添加COS_FOLDER前缀
+        // COS_FOLDER的实际值是 'clothinges/'
+        const COS_FOLDER = 'clothinges/';
+        // 使用图片CDN域名构建完整的URL
+        return `https://clothing.0086studios.xyz/${COS_FOLDER}${cleanPath}`;
+    }
+
     selectClothing(item) {
         // 选择来源：根据当前分类判断
         const isDress = this.currentCategory === 'dresses';
@@ -539,7 +780,7 @@ class AppState {
             hasSelection = true;
             summaryHTML += `
                 <div class="selected-item-display">
-                    <img src="${this.selectedDress.item.image}" alt="${this.selectedDress.item.name}" />
+                    <img src="${this.getImageUrl(this.selectedDress.item.image)}" alt="${this.selectedDress.item.name}" />
                     <span>${this.selectedDress.item.name}</span>
                     <span class="item-type">裙子</span>
                 </div>
@@ -550,7 +791,7 @@ class AppState {
                 hasSelection = true;
                 summaryHTML += `
                     <div class="selected-item-display">
-                        <img src="${this.selectedTopBottom.tops.image}" alt="${this.selectedTopBottom.tops.name}" />
+                        <img src="${this.getImageUrl(this.selectedTopBottom.tops.image)}" alt="${this.selectedTopBottom.tops.name}" />
                         <span>${this.selectedTopBottom.tops.name}</span>
                         <span class="item-type">上衣</span>
                     </div>
@@ -560,7 +801,7 @@ class AppState {
                 hasSelection = true;
                 summaryHTML += `
                     <div class="selected-item-display">
-                        <img src="${this.selectedTopBottom.bottoms.image}" alt="${this.selectedTopBottom.bottoms.name}" />
+                        <img src="${this.getImageUrl(this.selectedTopBottom.bottoms.image)}" alt="${this.selectedTopBottom.bottoms.name}" />
                         <span>${this.selectedTopBottom.bottoms.name}</span>
                         <span class="item-type">下衣</span>
                     </div>
@@ -594,13 +835,17 @@ class AppState {
         this.showLoading('正在生成试衣效果...', '这可能需要几分钟时间，请耐心等待');
 
         try {
-            // 优先使用 API Server 任务管理
-            if (window.apiClient && window.apiClient.token && this.currentTaskId) {
-                await this.startApiServerTask();
-            } else {
-                // 回退到原有的 RunningHub 直接调用流程
-                await this.startLegacyRunningHubTask();
+            // 强制使用 API-server 进行试穿任务管理
+            if (!window.apiClient || !window.apiClient.token) {
+                throw new Error('API客户端未初始化或未认证，请先完成设备认证');
             }
+            
+            if (!this.currentTaskId) {
+                throw new Error('未找到任务ID，请重新上传照片');
+            }
+            
+            console.log('🌐 使用 API-server 进行试穿任务管理（强制模式）');
+            await this.startApiServerTask();
 
         } catch (error) {
             console.error('试衣流程错误:', error);
@@ -637,7 +882,13 @@ class AppState {
                 throw new Error('未找到任务ID，请重新上传照片');
             }
 
-            // 启动试穿任务
+            console.log('🚀 通过API-server启动试穿任务:', {
+                taskId: this.currentTaskId,
+                topClothesId: topClothesId,
+                bottomClothesId: bottomClothesId
+            });
+
+            // 启动试穿任务 - 通过API-server
             const taskResponse = await window.apiClient.startTryonTask(
                 this.currentTaskId,
                 topClothesId,
@@ -666,77 +917,10 @@ class AppState {
         }
     }
 
-    // 原有的 RunningHub 直接调用流程
+    // 【已弃用】原有的 RunningHub 直接调用流程
+    // 现在强制使用 API-server，不再支持直接调用 RunningHub
     async startLegacyRunningHubTask() {
-        // 根据选择情况上传服装图片到RunningHub
-        let clothingUploadResults = {};
-        
-        if (this.lastSelectionType === 'dress') {
-            // 选择了裙子，只上传裙子图片
-            console.log('选择裙子，上传裙子图片:', this.selectedDress.item.image);
-            const dressUploadResponse = await this.uploadImageToRunningHub(this.selectedDress.item.image);
-            console.log('裙子图片上传结果:', dressUploadResponse);
-            
-            if (!dressUploadResponse.success) {
-                throw new Error('上传裙子图片失败: ' + dressUploadResponse.error);
-            }
-            
-            // 使用完整的文件名（包含api/前缀）
-            const dressFileName = dressUploadResponse.fileUrl;
-            clothingUploadResults.dress = dressFileName;
-            
-        } else if (this.lastSelectionType === 'topBottom') {
-            // 选择了上衣/下衣，根据实际选择上传
-            const topBottom = this.selectedTopBottom;
-            
-            if (topBottom.tops) {
-                // 上传上衣
-                console.log('选择上衣，上传上衣图片:', topBottom.tops.image);
-                const topUploadResponse = await this.uploadImageToRunningHub(topBottom.tops.image);
-                console.log('上衣图片上传结果:', topUploadResponse);
-                
-                if (!topUploadResponse.success) {
-                    throw new Error('上传上衣图片失败: ' + topUploadResponse.error);
-                }
-                
-                // 使用完整的文件名（包含api/前缀）
-                const topFileName = topUploadResponse.fileUrl;
-                clothingUploadResults.top = topFileName;
-            }
-            
-            if (topBottom.bottoms) {
-                // 上传下衣
-                console.log('选择下衣，上传下衣图片:', topBottom.bottoms.image);
-                const bottomUploadResponse = await this.uploadImageToRunningHub(topBottom.bottoms.image);
-                console.log('下衣图片上传结果:', bottomUploadResponse);
-                
-                if (!bottomUploadResponse.success) {
-                    throw new Error('上传下衣图片失败: ' + bottomUploadResponse.error);
-                }
-                
-                // 使用完整的文件名（包含api/前缀）
-                const bottomFileName = bottomUploadResponse.fileUrl;
-                clothingUploadResults.bottom = bottomFileName;
-            }
-        }
-
-        // 启动RunningHub工作流任务
-        const taskResponse = await this.startRunningHubTask(
-            this.userProfile.fullBodyShotNameInRH,
-            clothingUploadResults
-        );
-        
-        if (!taskResponse.success) {
-            throw new Error('启动任务失败: ' + taskResponse.error);
-        }
-
-        this.currentTask = {
-            taskId: taskResponse.taskId,
-            status: taskResponse.taskStatus
-        };
-
-        // 开始轮询任务状态
-        this.pollRunningHubTaskStatus();
+        throw new Error('直接调用 RunningHub 的模式已被禁用，请使用 API-server 模式');
     }
 
     // 轮询 API Server 任务状态
@@ -978,449 +1162,35 @@ class AppState {
         }
     }
 
-    // 启动RunningHub工作流任务
+    // 【已弃用】启动RunningHub工作流任务
+    // 现在由 API-server 统一管理所有 RunningHub 交互
     async startRunningHubTask(fullBodyShotNameInRH, clothingUploadResults) {
-        try {
-            const config = this.getConfig();
-            if (!config.runninghub.apiKey) {
-                throw new Error('请先配置RunningHub API Key');
-            }
-            
-            // 根据用户选择的服装类型确定使用的工作流ID
-            let workflowId;
-            if (clothingUploadResults.dress || (clothingUploadResults.top && !clothingUploadResults.bottom)) {
-                // 裙子或单上衣：使用单件工作流
-                workflowId = config.runninghub.singleItemWorkflowId;
-                if (!workflowId) {
-                    throw new Error('请先配置单件服装工作流ID (singleItemWorkflowId)');
-                }
-            } else if (clothingUploadResults.top && clothingUploadResults.bottom) {
-                // 上衣+下衣：使用上衣下衣工作流
-                workflowId = config.runninghub.topBottomWorkflowId;
-                if (!workflowId) {
-                    throw new Error('请先配置上衣下衣工作流ID (topBottomWorkflowId)');
-                }
-            } else {
-                throw new Error('未检测到有效的服装选择');
-            }
-            
-            // 验证配置
-            console.log('🔍 配置验证:', {
-                apiKey: config.runninghub.apiKey ? `${config.runninghub.apiKey.substring(0, 8)}...` : '未设置',
-                workflowId: workflowId,
-                baseUrl: config.runninghub.baseUrl,
-                clothingType: clothingUploadResults.dress ? '裙子' : (clothingUploadResults.top && clothingUploadResults.bottom ? '上衣+下衣' : '单上衣')
-            });
-
-            // 构造nodeInfoList
-            const nodeInfoList = [
-                {
-                    nodeId: "254", // 用户照片输入节点
-                    fieldName: "image",
-                    fieldValue: fullBodyShotNameInRH
-                }
-            ];
-
-            // 根据上传的服装类型添加对应的节点
-            if (clothingUploadResults.dress) {
-                // 裙子：nodeId为253
-                nodeInfoList.push({
-                    nodeId: "253",
-                    fieldName: "image",
-                    fieldValue: clothingUploadResults.dress
-                });
-            } else {
-                // 上衣/下衣
-                if (clothingUploadResults.top) {
-                    // 上衣：nodeId为253
-                    nodeInfoList.push({
-                        nodeId: "253",
-                        fieldName: "image",
-                        fieldValue: clothingUploadResults.top
-                    });
-                }
-                if (clothingUploadResults.bottom) {
-                    // 下衣：nodeId为300
-                    nodeInfoList.push({
-                        nodeId: "300",
-                        fieldName: "image",
-                        fieldValue: clothingUploadResults.bottom
-                    });
-                }
-            }
-
-            // 构造任务参数 - 尝试不同的格式
-            const taskData = {
-                apiKey: config.runninghub.apiKey,
-                workflowId: workflowId,
-                nodeInfoList: nodeInfoList
-            };
-            
-            // 也尝试另一种可能的格式
-            const alternativeTaskData = {
-                api_key: config.runninghub.apiKey,
-                workflow_id: workflowId,
-                node_info_list: nodeInfoList
-            };
-            
-            console.log('🔍 尝试格式1 (驼峰命名):', JSON.stringify(taskData, null, 2));
-            console.log('🔍 尝试格式2 (下划线命名):', JSON.stringify(alternativeTaskData, null, 2));
-
-            console.log('启动RunningHub任务，参数:', taskData);
-            console.log('nodeInfoList 详细内容:', JSON.stringify(nodeInfoList, null, 2));
-
-            // 调用RunningHub启动任务接口
-            // 尝试多个可能的API端点
-            const possibleUrls = [
-                'https://www.runninghub.cn/task/openapi/create',
-                'https://www.runninghub.cn/api/task/create',
-                'https://www.runninghub.cn/openapi/task/create',
-                'https://api.runninghub.cn/task/create'
-            ];
-            const apiUrl = possibleUrls[0]; // 先尝试第一个
-            console.log('📤 启动任务请求数据:', {
-                url: apiUrl,
-                method: 'POST',
-                headers: {
-                    'Host': 'www.runninghub.cn',
-                    'Content-Type': 'application/json'
-                },
-                body: taskData
-            });
-
-            // 尝试不同的API请求格式
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(taskData)
-            });
-
-            console.log('📊 HTTP响应状态:', response.status, response.statusText);
-            console.log('📊 响应头:', Object.fromEntries(response.headers.entries()));
-            
-            const result = await response.json();
-            console.log('📥 RunningHub任务创建响应:', JSON.stringify(result, null, 2));
-            
-            // 检查HTTP状态码
-            if (!response.ok) {
-                console.error('❌ HTTP请求失败:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    response: result
-                });
-                return {
-                    success: false,
-                    error: `HTTP ${response.status}: ${response.statusText} - ${result.msg || '请求失败'}`
-                };
-            }
-            
-            // 检查多种可能的成功响应格式
-            if ((result.code === 0 || result.success === true || result.success === 'success') && result.data) {
-                console.log('✅ 启动任务成功，任务ID:', result.data.taskId);
-                
-                // 检查是否有节点错误
-                if (result.data.promptTips) {
-                    try {
-                        const promptTips = JSON.parse(result.data.promptTips);
-                        console.log('📋 任务提示信息:', promptTips);
-                        
-                        if (promptTips.node_errors && Object.keys(promptTips.node_errors).length > 0) {
-                            console.error('❌ 工作流节点错误:', promptTips.node_errors);
-                            
-                            // 提取错误信息
-                            const errors = [];
-                            for (const [nodeId, nodeError] of Object.entries(promptTips.node_errors)) {
-                                if (nodeError.errors && nodeError.errors.length > 0) {
-                                    for (const error of nodeError.errors) {
-                                        errors.push(`节点${nodeId}: ${error.details || error.message}`);
-                                    }
-                                }
-                            }
-                            
-                            if (errors.length > 0) {
-                                return {
-                                    success: false,
-                                    error: '工作流执行错误: ' + errors.join('; ')
-                                };
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ 解析promptTips失败:', e);
-                    }
-                }
-                
-                return {
-                    success: true,
-                    taskId: result.data.taskId,
-                    taskStatus: result.data.taskStatus
-                };
-            } else {
-                console.error('❌ 启动任务失败:', {
-                    code: result.code,
-                    success: result.success,
-                    message: result.msg,
-                    fullResponse: result
-                });
-                return {
-                    success: false,
-                    error: result.msg || '启动任务失败'
-                };
-            }
-        } catch (error) {
-            console.error('启动任务错误:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
+        throw new Error('直接调用 RunningHub 任务创建已被禁用，请使用 API-server 模式');
     }
 
-    // 轮询RunningHub任务状态
+    // 【已弃用】轮询RunningHub任务状态
+    // 现在由 API-server 统一管理所有 RunningHub 交互
     async pollRunningHubTaskStatus() {
-        const maxAttempts = 60; // 最多检查5分钟（每5秒一次）
-        let attempts = 0;
-
-        console.log('🔄 开始轮询任务状态，任务ID:', this.currentTask.taskId);
-
-        const poll = async () => {
-            attempts++;
-            console.log(`🔄 第 ${attempts} 次轮询任务状态...`);
-            
-            try {
-                const statusResponse = await this.queryRunningHubTaskStatus(this.currentTask.taskId);
-                
-                if (statusResponse.success) {
-                    const status = statusResponse.taskStatus;
-                    this.currentTask.status = status;
-                    console.log(`📊 任务状态更新: ${status}`);
-
-                    // 更新进度文本
-                    const progressText = document.getElementById('progress-text');
-                    if (progressText) {
-                        switch(status) {
-                            case 'QUEUED':
-                            case 'PENDING':
-                                progressText.textContent = '任务排队中...';
-                                console.log('⏳ 任务排队中，等待执行...');
-                                break;
-                            case 'RUNNING':
-                            case 'PROCESSING':
-                                progressText.textContent = '正在生成试衣效果...';
-                                console.log('🚀 任务正在执行中...');
-                                break;
-                            case 'COMPLETED':
-                            case 'SUCCESS':
-                                progressText.textContent = '生成完成，获取结果中...';
-                                console.log('✅ 任务执行完成，开始获取结果...');
-                                // 先尝试获取结果，如果结果为空则继续轮询
-                                const resultResponse = await this.getRunningHubTaskResult();
-                                if (resultResponse && resultResponse.continuePolling) {
-                                    // 结果为空，继续轮询
-                                    console.log('🔄 结果为空，继续轮询...');
-                                    if (attempts < maxAttempts) {
-                                        setTimeout(poll, 3000); // 3秒后再次检查
-                                    } else {
-                                        throw new Error('任务超时，结果获取失败');
-                                    }
-                                } else {
-                                    // 结果获取成功，结束轮询
-                                    return;
-                                }
-                                break;
-                            case 'FAILED':
-                            case 'ERROR':
-                                console.error('❌ 任务执行失败');
-                                throw new Error('任务执行失败');
-                            default:
-                                console.log(`⚠️ 未知任务状态: ${status}`);
-                                progressText.textContent = `任务状态: ${status}`;
-                        }
-                    }
-
-                    console.log(`📈 轮询进度: ${attempts}/${maxAttempts}`);
-                } else {
-                    console.error('❌ 状态查询失败:', statusResponse.error);
-                }
-
-                if (attempts < maxAttempts) {
-                    console.log(`⏰ 5秒后进行第 ${attempts + 1} 次轮询...`);
-                    setTimeout(poll, 5000); // 5秒后再次检查
-                } else {
-                    console.error('⏰ 轮询超时，已达到最大尝试次数');
-                    throw new Error('任务超时，请稍后重试');
-                }
-
-            } catch (error) {
-                console.error('❌ 轮询任务状态错误:', error);
-                this.hideLoading();
-                this.showError('获取任务状态失败: ' + error.message);
-            }
-        };
-
-        poll();
+        throw new Error('直接调用 RunningHub 状态轮询已被禁用，请使用 API-server 模式');
     }
 
     // 查询RunningHub任务状态
+    // 【已弃用】查询RunningHub任务状态
+    // 现在由 API-server 统一管理所有 RunningHub 交互
     async queryRunningHubTaskStatus(taskId) {
-        try {
-            const config = this.getConfig();
-            if (!config.runninghub.apiKey) {
-                throw new Error('请先配置RunningHub API Key');
-            }
-
-            const requestBody = {
-                apiKey: config.runninghub.apiKey,
-                taskId: taskId
-            };
-
-            console.log('📤 查询任务状态请求数据:', {
-                url: 'https://www.runninghub.cn/task/openapi/status',
-                method: 'POST',
-                headers: {
-                    'Host': 'www.runninghub.cn',
-                    'Content-Type': 'application/json'
-                },
-                body: requestBody
-            });
-
-            const response = await fetch('https://www.runninghub.cn/task/openapi/status', {
-                method: 'POST',
-                headers: {
-                    'Host': 'www.runninghub.cn',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            const result = await response.json();
-            console.log('📥 任务状态查询响应:', JSON.stringify(result, null, 2));
-            
-            // 检查多种可能的成功响应格式
-            if ((result.code === 0 || result.success === true || result.success === 'success') && result.data) {
-                // 处理不同的data格式
-                let taskStatus;
-                if (typeof result.data === 'string') {
-                    // 如果data是字符串，直接使用
-                    taskStatus = result.data;
-                } else if (result.data.taskStatus) {
-                    // 如果data是对象，使用taskStatus字段
-                    taskStatus = result.data.taskStatus;
-                } else {
-                    // 其他情况，使用data本身
-                    taskStatus = result.data;
-                }
-                
-                console.log('✅ 任务状态查询成功:', {
-                    taskId: taskId,
-                    status: taskStatus,
-                    fullResponse: result.data
-                });
-                return {
-                    success: true,
-                    taskStatus: taskStatus
-                };
-            } else {
-                console.error('❌ 任务状态查询失败:', {
-                    code: result.code,
-                    success: result.success,
-                    message: result.msg,
-                    fullResponse: result
-                });
-                return {
-                    success: false,
-                    error: result.msg || '查询状态失败'
-                };
-            }
-        } catch (error) {
-            console.error('❌ 查询任务状态错误:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
+        throw new Error('直接调用 RunningHub 状态查询已被禁用，请使用 API-server 模式');
     }
 
-    // 获取RunningHub任务结果
+    // 【已弃用】上传图片到RunningHub
+    // 现在由 API-server 统一管理所有 RunningHub 交互
+    async uploadImageToRunningHub(imagePath) {
+        throw new Error('直接调用 RunningHub 图片上传已被禁用，请使用 API-server 模式');
+    }
+
+    // 【已弃用】获取RunningHub任务结果
+    // 现在由 API-server 统一管理所有 RunningHub 交互
     async getRunningHubTaskResult() {
-        try {
-            const config = this.getConfig();
-            if (!config.runninghub.apiKey) {
-                throw new Error('请先配置RunningHub API Key');
-            }
-
-            const requestBody = {
-                apiKey: config.runninghub.apiKey,
-                taskId: this.currentTask.taskId
-            };
-
-            console.log('📤 获取任务结果请求数据:', {
-                url: 'https://www.runninghub.cn/task/openapi/outputs',
-                method: 'POST',
-                headers: {
-                    'Host': 'www.runninghub.cn',
-                    'Content-Type': 'application/json'
-                },
-                body: requestBody
-            });
-
-            const response = await fetch('https://www.runninghub.cn/task/openapi/outputs', {
-                method: 'POST',
-                headers: {
-                    'Host': 'www.runninghub.cn',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            const result = await response.json();
-            console.log('📥 任务结果查询响应:', JSON.stringify(result, null, 2));
-            
-            // 检查多种可能的成功响应格式
-            if ((result.code === 0 || result.success === true || result.success === 'success')) {
-                if (result.data && result.data.length > 0) {
-                    console.log('✅ 任务结果获取成功:', {
-                        taskId: this.currentTask.taskId,
-                        resultCount: result.data.length,
-                        firstResult: result.data[0],
-                        fullResponse: result.data
-                    });
-                    
-                    const imageUrl = result.data[0].fileUrl;
-                    console.log('🖼️ 生成的图片URL:', imageUrl);
-                    
-                    this.hideLoading();
-                    this.showResult(imageUrl);
-                    return { continuePolling: false }; // 结果获取成功，不需要继续轮询
-                } else {
-                    console.warn('⚠️ 任务执行成功但结果为空:', {
-                        taskId: this.currentTask.taskId,
-                        data: result.data,
-                        fullResponse: result
-                    });
-                    
-                    // 结果为空，可能任务刚完成，结果还没准备好
-                    console.log('🔄 结果为空，需要继续轮询状态等待结果准备...');
-                    return { continuePolling: true }; // 结果为空，需要继续轮询
-                }
-            } else {
-                console.error('❌ 任务结果获取失败:', {
-                    code: result.code,
-                    success: result.success,
-                    message: result.msg,
-                    data: result.data,
-                    fullResponse: result
-                });
-                throw new Error(result.msg || '获取结果失败');
-            }
-
-        } catch (error) {
-            console.error('❌ 获取任务结果错误:', error);
-            this.hideLoading();
-            this.showError('获取试衣结果失败: ' + error.message);
-        }
+        throw new Error('直接调用 RunningHub 结果获取已被禁用，请使用 API-server 模式');
     }
 
 
@@ -1431,18 +1201,106 @@ class AppState {
         
         // 显示结果图片
         const resultImg = document.getElementById('result-image');
-        resultImg.src = imageUrl;
         resultImg.style.display = 'block';
-        resultImg.onload = () => {
+        
+        // 预加载图片以确保流畅显示
+        const img = new Image();
+        img.onload = () => {
+            // 图片加载完成后设置到结果图片元素
+            resultImg.src = imageUrl;
+            
+            // 添加淡入效果
+            resultImg.classList.remove('fade-in');
+            void resultImg.offsetWidth;
             resultImg.classList.add('fade-in');
+            
+            // 调整容器大小以适应图片
+            this.adjustImageContainer();
+            
+            // 如果在全屏模式下，重新调整
+            const resultsPage = document.getElementById('results-page');
+            if (resultsPage && resultsPage.classList.contains('fullscreen')) {
+                setTimeout(() => this.adjustImageContainer(), 100);
+            }
         };
-
+        
+        img.onerror = () => {
+            console.error('图片加载失败:', imageUrl);
+            resultImg.style.display = 'none';
+            this.showError('试衣结果图片加载失败，请重试');
+        };
+        
+        // 开始预加载
+        img.src = imageUrl;
+        
         // 显示操作按钮和风格信息
         document.getElementById('result-actions').style.display = 'flex';
         document.getElementById('style-info').style.display = 'flex';
-
+        
         // 保存结果图片URL
         this.resultImageUrl = imageUrl;
+        
+        // 确保容器能够正确显示图片
+        const container = document.querySelector('.result-image-container');
+        if (container) {
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+        }
+    }
+
+    // 调整图片容器大小以适应图片
+    adjustImageContainer() {
+        const resultImg = document.getElementById('result-image');
+        const container = document.querySelector('.result-image-container');
+        
+        if (resultImg && container) {
+            // 获取图片的自然尺寸
+            const naturalWidth = resultImg.naturalWidth;
+            const naturalHeight = resultImg.naturalHeight;
+            
+            // 如果图片尚未加载完成，延迟调整
+            if (naturalWidth === 0 || naturalHeight === 0) {
+                setTimeout(() => this.adjustImageContainer(), 100);
+                return;
+            }
+            
+            // 获取容器的尺寸
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // 计算图片的显示尺寸
+            const aspectRatio = naturalWidth / naturalHeight;
+            let displayWidth, displayHeight;
+            
+            // 根据容器尺寸和图片比例计算最佳显示尺寸
+            if (naturalWidth > naturalHeight) {
+                // 横向图片
+                displayWidth = Math.min(naturalWidth, containerWidth * 0.95);
+                displayHeight = displayWidth / aspectRatio;
+            } else {
+                // 纵向图片
+                displayHeight = Math.min(naturalHeight, containerHeight * 0.95);
+                displayWidth = displayHeight * aspectRatio;
+            }
+            
+            // 确保图片不会超出容器
+            if (displayHeight > containerHeight * 0.95) {
+                displayHeight = containerHeight * 0.95;
+                displayWidth = displayHeight * aspectRatio;
+            }
+            
+            if (displayWidth > containerWidth * 0.95) {
+                displayWidth = containerWidth * 0.95;
+                displayHeight = displayWidth / aspectRatio;
+            }
+            
+            // 应用尺寸调整
+            resultImg.style.width = displayWidth + 'px';
+            resultImg.style.height = displayHeight + 'px';
+            resultImg.style.maxWidth = '100%';
+            resultImg.style.maxHeight = '100%';
+            resultImg.style.objectFit = 'contain';
+        }
     }
 
     async generateDownloadQR() {
@@ -1452,19 +1310,14 @@ class AppState {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/generate-download-qr`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    imageUrl: this.resultImageUrl,
-                    clothingInfo: this.getSelectedClothingInfo(),
-                    openid: this.userProfile.openid
-                })
-            });
-
-            const data = await response.json();
+            // 确保 API 客户端已初始化
+            await window.apiClient.initialize();
+            
+            const data = await window.apiClient.generateDownloadQR(
+                this.resultImageUrl,
+                this.getSelectedClothingInfo(),
+                this.userProfile.openid
+            );
             
             if (data.success) {
                 // 隐藏加载文本
@@ -1581,6 +1434,9 @@ class AppState {
         
         // 返回默认配置
         return {
+            apiServer: {
+                url: 'http://localhost:4001'
+            },
             runninghub: {
                 apiKey: '',
                 baseUrl: 'https://www.runninghub.cn',
@@ -1608,7 +1464,6 @@ class AppState {
 }
 
 // 创建全局应用状态实例
-const appState = new AppState();
 
 // UI 交互函数
 
@@ -1682,8 +1537,8 @@ function computeAndApplyCameraScale() {
 }
 
 function startExperience() {
-    // 模拟获取 openid（实际应用中通过微信 API 获取）
-    appState.userProfile.openid = 'user_' + Date.now();
+    console.log('开始体验');
+    // 切换到个人信息页面
     appState.setPage('profile-page');
 }
 
@@ -1694,6 +1549,8 @@ function openConfigPage() {
 function takePicture() {
     document.getElementById('photo-input').click();
 }
+
+console.log('衣等舱应用已初始化');
 
 function uploadFromFile() {
     document.getElementById('photo-input').click();
@@ -1721,32 +1578,10 @@ async function handlePhotoUpload(event) {
     };
     reader.readAsDataURL(file);
 
-    // 上传文件到服务器
-    appState.showLoading('上传照片中...');
-    
-    try {
-        const formData = new FormData();
-        formData.append('photo', file);
-
-        const response = await fetch(`${appState.apiBaseUrl}/upload-photo`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-            appState.userProfile.photoFileName = result.fileName;
-            appState.hideLoading();
-        } else {
-            throw new Error(result.error || '上传失败');
-        }
-
-    } catch (error) {
-        console.error('上传照片错误:', error);
-        appState.hideLoading();
-        appState.showError('照片上传失败: ' + error.message);
-    }
+    // 已弃用：此上传逻辑已被新的 takePhoto() 方法中的 API 客户端上传替代
+    // 直接跳转到服装选择页面，因为照片上传现在在拍照时完成
+    console.log('⚠️ 使用了已弃用的上传方法，直接跳转到服装选择页面');
+    appState.setPage('clothing-page');
 }
 
 function generateTryOn() {
@@ -1790,8 +1625,87 @@ function retryFitting() {
     appState.setPage('clothing-page');
 }
 
-function saveImage() {
-    appState.setPage('download-page');
+// 保存图片并推送结果到微信
+async function saveImage() {
+    try {
+        // 首先跳转到下载页面
+        appState.setPage('download-page');
+        
+        // 推送试装结果到微信
+        await pushTryonResultToWechat();
+    } catch (error) {
+        console.error('保存图片或推送微信失败:', error);
+        appState.showError('保存图片失败: ' + error.message);
+    }
+}
+
+// 推送试装结果到微信
+async function pushTryonResultToWechat() {
+    try {
+        // 确保API客户端已初始化
+        if (!window.apiClient) {
+            console.error('API客户端未初始化');
+            return;
+        }
+        
+        // 获取设备MAC地址
+        let macAddress = appState.macAddress;
+        if (!macAddress) {
+            // 如果应用状态中没有MAC地址，尝试从系统获取
+            try {
+                const { ipcRenderer } = require('electron');
+                macAddress = await ipcRenderer.invoke('get-mac-address');
+            } catch (error) {
+                console.error('获取MAC地址失败:', error);
+                macAddress = '00:11:22:33:44:55'; // 默认值
+            }
+        }
+        
+        // 获取当前选择的服装信息
+        const clothingInfo = appState.getSelectedClothingInfo();
+        
+        // 获取结果图片URL
+        const imageUrl = appState.resultImageUrl;
+        
+        if (!imageUrl) {
+            throw new Error('没有可用的试衣结果图片');
+        }
+        
+        // 获取服装购买链接
+        let purchaseUrl = '';
+        if (appState.selectedDress) {
+            purchaseUrl = appState.selectedDress.item.purchaseUrl || '';
+        } else if (appState.selectedTopBottom) {
+            const topItem = appState.selectedTopBottom.tops;
+            const bottomItem = appState.selectedTopBottom.bottoms;
+            // 优先使用上衣的购买链接
+            purchaseUrl = (topItem && topItem.purchaseUrl) || (bottomItem && bottomItem.purchaseUrl) || '';
+        }
+        
+        if (!purchaseUrl) {
+            throw new Error('没有找到服装购买链接');
+        }
+        
+        // 调用API推送试装结果
+        const response = await window.apiClient.request('/api/wechat/push-tryon-result', {
+            method: 'POST',
+            body: JSON.stringify({
+                macAddress: macAddress,
+                imageUrl: imageUrl,
+                purchaseUrl: purchaseUrl,
+                clothesName: clothingInfo.name || '试装结果'
+            })
+        });
+        
+        if (response.success) {
+            console.log('✅ 试装结果已推送至微信');
+        } else {
+            throw new Error(response.error || '推送微信失败');
+        }
+    } catch (error) {
+        console.error('❌ 推送试装结果到微信失败:', error);
+        // 不中断用户流程，仅记录错误
+    }
 }
 
 function confirmStyle() {
@@ -2069,6 +1983,10 @@ async function loadConfigIntoForm() {
     console.log('🔍 加载配置到表单:', cfg);
     
     try {
+        // API服务器配置
+        document.getElementById('cfg-api-server-url').value = cfg.apiServer?.url || 'http://localhost:4001';
+        
+        // RunningHub配置
         document.getElementById('cfg-runninghub-apiKey').value = cfg.runninghub.apiKey || '';
         document.getElementById('cfg-runninghub-baseUrl').value = cfg.runninghub.baseUrl || '';
         // 兼容性处理：如果存在旧的workflowId，将其映射到singleItemWorkflowId
@@ -2083,10 +2001,14 @@ async function loadConfigIntoForm() {
         
         document.getElementById('cfg-runninghub-singleItemWorkflowId').value = singleItemValue;
         document.getElementById('cfg-runninghub-topBottomWorkflowId').value = topBottomValue;
+        
+        // 微信配置
         document.getElementById('cfg-wechat-appId').value = cfg.wechat.appId || '';
         document.getElementById('cfg-wechat-appSecret').value = cfg.wechat.appSecret || '';
         document.getElementById('cfg-wechat-token').value = cfg.wechat.token || '';
         document.getElementById('cfg-wechat-encodingAESKey').value = cfg.wechat.encodingAESKey || '';
+        
+        // 服务器配置
         document.getElementById('cfg-server-host').value = cfg.server.host || '';
         document.getElementById('cfg-server-port').value = cfg.server.port || '';
         
@@ -2110,6 +2032,10 @@ async function saveConfig() {
         const existing = appState.getConfig() || {};
         const body = {
             ...existing,
+            apiServer: {
+                ...(existing.apiServer || {}),
+                url: document.getElementById('cfg-api-server-url').value.trim()
+            },
             runninghub: {
                 ...(existing.runninghub || {}),
                 apiKey: document.getElementById('cfg-runninghub-apiKey').value.trim(),
@@ -2144,25 +2070,22 @@ async function saveConfig() {
     }
 }
 
-// 测试API连接
-async function testApiConnection() {
-    const resultDiv = document.getElementById('api-test-result');
-    const host = document.getElementById('cfg-server-host').value.trim() || 'localhost';
-    const port = document.getElementById('cfg-server-port').value || '4001';
+async function testApiServerConnection() {
+    const resultDiv = document.getElementById('api-server-test-result');
+    const apiServerUrl = document.getElementById('cfg-api-server-url').value.trim() || 'https://api.0086.xyz';
     
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="color: #007bff;">🔄 正在测试连接...</div>';
+    resultDiv.innerHTML = '<div style="color: #007bff;">🔄 正在测试API服务器连接...</div>';
     
     try {
-        const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
-        const baseUrl = `${protocol}://${host}:${port}`;
-        
-        console.log('🧪 测试API连接:', baseUrl);
+        const testUrl = `${apiServerUrl}/health`;
+        console.log('🔗 测试API服务器连接:', testUrl);
         
         // 测试健康检查
-        const healthResponse = await fetch(`${baseUrl}/health`, {
+        const healthResponse = await fetch(testUrl, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000
         });
         
         if (!healthResponse.ok) {
@@ -2170,11 +2093,11 @@ async function testApiConnection() {
         }
         
         const healthData = await healthResponse.json();
-        console.log('✅ 健康检查成功:', healthData);
+        console.log('✅ API服务器健康检查成功:', healthData);
         
         // 测试设备认证
         const testMac = 'test-config-' + Date.now();
-        const authResponse = await fetch(`${baseUrl}/api/auth/device`, {
+        const authResponse = await fetch(`${apiServerUrl}/api/auth/device`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2188,11 +2111,11 @@ async function testApiConnection() {
         }
         
         const authData = await authResponse.json();
-        console.log('✅ 设备认证成功:', authData);
+        console.log('✅ API服务器设备认证成功:', authData);
         
         if (authData.success) {
             // 测试服装分类接口
-            const categoriesResponse = await fetch(`${baseUrl}/api/clothes/categories`, {
+            const categoriesResponse = await fetch(`${apiServerUrl}/api/clothes/categories`, {
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authData.token}`
@@ -2201,12 +2124,12 @@ async function testApiConnection() {
             
             if (categoriesResponse.ok) {
                 const categoriesData = await categoriesResponse.json();
-                console.log('✅ 服装分类获取成功:', categoriesData);
+                console.log('✅ API服务器服装分类获取成功:', categoriesData);
                 
                 resultDiv.innerHTML = `
                     <div style="color: #28a745; border: 1px solid #28a745; background: #d4edda; padding: 8px; border-radius: 4px;">
-                        ✅ API连接测试成功<br>
-                        <small>服务器: ${baseUrl}<br>
+                        ✅ API服务器连接测试成功<br>
+                        <small>服务器: ${apiServerUrl}<br>
                         健康状态: ${healthData.status || 'OK'}<br>
                         服装分类: ${categoriesData.data?.length || 0} 个</small>
                     </div>
@@ -2219,12 +2142,12 @@ async function testApiConnection() {
         }
         
     } catch (error) {
-        console.error('❌ API连接测试失败:', error);
+        console.error('❌ API服务器连接测试失败:', error);
         resultDiv.innerHTML = `
             <div style="color: #dc3545; border: 1px solid #dc3545; background: #f8d7da; padding: 8px; border-radius: 4px;">
-                ❌ API连接测试失败<br>
+                ❌ API服务器连接测试失败<br>
                 <small>${error.message}</small><br>
-                <small style="color: #6c757d;">请检查服务器地址和端口设置</small>
+                <small style="color: #6c757d;">请检查API服务器地址设置</small>
             </div>
         `;
     }
@@ -2538,7 +2461,7 @@ function showCameraError() {
 }
 
 // 拍照功能
-function capturePhoto() {
+async function capturePhoto() {
     if (!cameraVideo || !cameraCanvas) {
         console.error('摄像头未初始化');
         return;
@@ -2574,19 +2497,93 @@ function capturePhoto() {
 
         ctx.restore();
 
-        // 获取照片数据
-        const photoData = cameraCanvas.toDataURL('image/jpeg', 0.8);
+        // 获取完整照片数据
+        const fullPhotoData = cameraCanvas.toDataURL('image/jpeg', 0.8);
+        
+        // 创建裁剪后的照片（720x1024）
+        const croppedPhotoData = await cropPhotoTo720x1024(fullPhotoData);
         
         // 保存到应用状态
-        appState.userProfile.photo = photoData;
+        appState.userProfile.photo = croppedPhotoData; // 使用裁剪后的照片
         appState.userProfile.photoFileName = `photo_${Date.now()}.jpg`;
         
-        console.log('照片拍摄成功');
-        return photoData;
+        console.log('照片拍摄和裁剪成功，尺寸：720x1024');
+        return croppedPhotoData;
     } catch (error) {
         console.error('拍照失败:', error);
         return null;
     }
+}
+
+// 裁剪照片为720x1024尺寸
+function cropPhotoTo720x1024(photoDataUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            // 创建裁剪画布
+            const cropCanvas = document.createElement('canvas');
+            const cropCtx = cropCanvas.getContext('2d');
+            
+            // 设置目标尺寸
+            const targetWidth = 720;
+            const targetHeight = 1024;
+            cropCanvas.width = targetWidth;
+            cropCanvas.height = targetHeight;
+            
+            // 获取原始图片尺寸
+            const srcWidth = img.width;
+            const srcHeight = img.height;
+            
+            console.log(`原始图片尺寸: ${srcWidth}x${srcHeight}`);
+            console.log(`目标尺寸: ${targetWidth}x${targetHeight}`);
+            
+            // 计算裁剪区域（中心裁剪）
+            let sourceX, sourceY, sourceWidth, sourceHeight;
+            
+            // 计算缩放比例，保持长宽比为 720:1024 = 45:64
+            const targetRatio = targetWidth / targetHeight; // 0.703125
+            const sourceRatio = srcWidth / srcHeight;
+            
+            if (sourceRatio > targetRatio) {
+                // 原图较宽，以高度为准，裁去两侧
+                sourceHeight = srcHeight;
+                sourceWidth = srcHeight * targetRatio;
+                sourceX = (srcWidth - sourceWidth) / 2;
+                sourceY = 0;
+            } else {
+                // 原图较高，以宽度为准，裁去上下
+                sourceWidth = srcWidth;
+                sourceHeight = srcWidth / targetRatio;
+                sourceX = 0;
+                sourceY = (srcHeight - sourceHeight) / 2;
+            }
+            
+            console.log(`裁剪区域: x=${sourceX}, y=${sourceY}, w=${sourceWidth}, h=${sourceHeight}`);
+            
+            // 清空画布
+            cropCtx.clearRect(0, 0, targetWidth, targetHeight);
+            
+            // 绘制裁剪后的图片
+            cropCtx.drawImage(
+                img,
+                sourceX, sourceY, sourceWidth, sourceHeight, // 源区域
+                0, 0, targetWidth, targetHeight // 目标区域
+            );
+            
+            // 转换为 base64
+            const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.8);
+            console.log('照片裁剪完成，新尺寸: 720x1024');
+            
+            resolve(croppedDataUrl);
+        };
+        
+        img.onerror = function() {
+            console.error('图片加载失败，返回原始数据');
+            resolve(photoDataUrl); // 如果失败，返回原始数据
+        };
+        
+        img.src = photoDataUrl;
+    });
 }
 
 // 修改generateTryOn函数，使用摄像头拍照
@@ -2659,9 +2656,9 @@ function startCountdown() {
 }
 
 // 执行拍照
-function takePhoto() {
+async function takePhoto() {
     try {
-        const photoData = capturePhoto();
+        const photoData = await capturePhoto();
         if (!photoData) {
             appState.showError('拍照失败，请重试');
             resetGenerateButton();
@@ -2691,62 +2688,49 @@ function resetGenerateButton() {
 // 上传照片到服务器和RunningHub
 async function uploadPhotoToServer(photoData) {
     try {
-        appState.showLoading('正在上传照片...');
+        appState.showLoading('正在上传照片（720x1024尺寸）...');
         
         // 将base64转换为Blob
         const response = await fetch(photoData);
         const blob = await response.blob();
         
-        // 1. 上传到本地服务器（保持原有逻辑）
-        const formData = new FormData();
-        formData.append('photo', blob, 'photo.jpg');
+        console.log(`上传照片信息: 尺寸 720x1024, 文件大小: ${blob.size} bytes`);
         
-        const uploadResponse = await fetch(`${appState.apiBaseUrl}/upload-photo`, {
-            method: 'POST',
-            body: formData
+        // 强制使用 API Server 模式进行上传并创建任务
+        console.log('🔍 检查API客户端状态:', {
+            hasApiClient: !!window.apiClient,
+            hasToken: !!(window.apiClient && window.apiClient.token),
+            baseUrl: window.apiClient ? window.apiClient.baseUrl : 'N/A',
+            initialized: window.apiClient ? window.apiClient.initialized : false
         });
         
-        const result = await uploadResponse.json();
-        
-        if (!result.success) {
-            throw new Error(result.error || '本地服务器上传失败');
+        if (!window.apiClient) {
+            console.error('❌ window.apiClient 不存在，尝试重新初始化...');
+            await initializeApiClient();
         }
         
-        appState.userProfile.photoFileName = result.fileName;
+        // 强制设置正确的API服务器地址（修复端口配置问题）
+        if (window.apiClient && window.apiClient.baseUrl !== 'http://localhost:4001') {
+            console.log('🔧 修复API客户端地址配置:', window.apiClient.baseUrl, '-> http://localhost:4001');
+            window.apiClient.baseUrl = 'http://localhost:4001';
+        }
+        
+        if (!window.apiClient || !window.apiClient.token) {
+            throw new Error('API客户端未初始化或未认证，请先完成设备认证');
+        }
+        
+        console.log('开始上传裁剪后的照片到 API Server 并创建任务...');
+        const apiUploadResponse = await window.apiClient.uploadPhotoAndCreateTask(blob);
+        console.log('API Server 上传结果:', apiUploadResponse);
+        
+        if (!apiUploadResponse.success) {
+            throw new Error(apiUploadResponse.error || 'API Server 上传失败');
+        }
+        
+        // 保存任务ID和照片信息
+        appState.currentTaskId = apiUploadResponse.data.taskId;
         appState.userProfile.photoUrl = photoData; // 保存原始的data URL
-        
-        // 2. 上传到新的 API Server 并创建任务（如果可用）
-        if (window.apiClient && window.apiClient.token) {
-            try {
-                console.log('开始上传照片到 API Server 并创建任务...');
-                const apiUploadResponse = await window.apiClient.uploadPhotoAndCreateTask(blob);
-                console.log('API Server 上传结果:', apiUploadResponse);
-                
-                if (apiUploadResponse.success) {
-                    // 保存任务ID供后续使用
-                    appState.currentTaskId = apiUploadResponse.data.taskId;
-                    console.log('任务创建成功，任务ID:', appState.currentTaskId);
-                } else {
-                    console.warn('API Server 任务创建失败:', apiUploadResponse.error);
-                }
-            } catch (apiError) {
-                console.warn('API Server 上传失败，继续使用本地服务器:', apiError);
-            }
-        }
-        
-        // 3. 上传到RunningHub（保持原有逻辑作为备用）
-        console.log('开始上传照片到RunningHub...');
-        const rhUploadResponse = await appState.uploadImageToRunningHub(photoData);
-        console.log('RunningHub上传结果:', rhUploadResponse);
-        
-        if (rhUploadResponse.success) {
-            // 直接使用完整的文件名（包含api/前缀）
-            const fileName = rhUploadResponse.fileUrl;
-            appState.userProfile.fullBodyShotNameInRH = fileName;
-            console.log('RunningHub文件名（完整）:', fileName);
-        } else {
-            console.warn('RunningHub上传失败，但继续流程:', rhUploadResponse.error);
-        }
+        console.log('✅ 任务创建成功，任务ID:', appState.currentTaskId);
         
         appState.hideLoading();
         
@@ -2769,6 +2753,9 @@ async function uploadPhotoToServer(photoData) {
 function backToCamera() {
     appState.backToCamera();
 }
+
+// 创建全局应用状态实例
+const appState = new AppState();
 
 console.log('衣等舱应用已初始化');
 

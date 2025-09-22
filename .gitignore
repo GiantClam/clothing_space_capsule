@@ -69,3 +69,6 @@ scripts/
 api-server/.env
 api-server/.env.*
 api-server/config.runtime.json
+
+# Deployment scripts
+deploy-to-tencent-cloud.js

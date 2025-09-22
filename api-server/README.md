@@ -106,6 +106,22 @@ baota-deploy.bat
 
 更多部署细节请查看 [宝塔部署详细文档](docs/BAOTA_DEPLOYMENT_GUIDE.md)
 
+#### 方案四：腾讯云一键部署
+
+详细部署说明请参考 [腾讯云部署指南](docs/TENCENT_CLOUD_DEPLOYMENT.md)
+
+```bash
+# 进入部署目录
+cd deploy
+
+# Linux环境下运行部署脚本
+chmod +x tencent-cloud.sh
+./tencent-cloud.sh
+
+# Windows环境下运行部署脚本
+tencent-cloud.bat
+```
+
 ## 高并发支持
 
 API服务器已配置为支持高并发：

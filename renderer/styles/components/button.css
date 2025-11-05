@@ -1,0 +1,143 @@
+/* 通用按钮样式 */
+.btn {
+  padding: var(--space-md) var(--space-2xl);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn:focus {
+  outline: 2px solid var(--antique-gold);
+  outline-offset: 2px;
+}
+
+/* 主要按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, var(--antique-gold) 0%, var(--burnished-gold) 100%);
+  color: var(--primary-black);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 次要按钮 */
+.btn-secondary {
+  background: var(--pure-white);
+  color: var(--soft-gray);
+  border: 2px solid var(--pale-gray);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--off-white);
+  border-color: var(--light-gray);
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 危险按钮 */
+.btn-danger {
+  background: linear-gradient(135deg, var(--error) 0%, #6b0000 100%);
+  color: var(--pure-white);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 成功按钮 */
+.btn-success {
+  background: linear-gradient(135deg, var(--success) 0%, #1a3d17 100%);
+  color: var(--pure-white);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong);
+}
+
+.btn-success:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 幽灵按钮 */
+.btn-ghost {
+  background: transparent;
+  color: var(--soft-gray);
+  border: 2px solid var(--pale-gray);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--light-gray);
+  transform: translateY(-2px);
+}
+
+.btn-ghost:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* 大按钮 */
+.btn-large {
+  padding: var(--space-lg) var(--space-3xl);
+  font-size: 18px;
+  min-width: 200px;
+  border-radius: var(--radius-2xl);
+}
+
+/* 小按钮 */
+.btn-small {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 14px;
+  min-width: 80px;
+  border-radius: var(--radius-md);
+}
+
+/* 圆形按钮 */
+.btn-circle {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  min-width: auto;
+}
+
+/* 块级按钮 */
+.btn-block {
+  width: 100%;
+  display: flex;
+}

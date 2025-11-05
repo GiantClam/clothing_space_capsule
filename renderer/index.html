@@ -2,9 +2,12 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1080, height=1920, initial-scale=1.0, user-scalable=no">
     <title>衣等舱 - AI试衣体验</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/pages/fitting-progress.css">
+    <link rel="stylesheet" href="styles/pages/results.css">
+    <link rel="stylesheet" href="styles/pages/download.css">
 </head>
 <body>
     <!-- 页面容器 -->
@@ -12,123 +15,413 @@
         
         <!-- 1. 欢迎页面 - 扫码关注 -->
         <div id="welcome-page" class="page active">
-            <div class="content-center">
-                <div class="logo-section">
-                    <div class="logo">衣等舱</div>
-                    <div class="subtitle">AI试衣间「一拍即合」</div>
-                </div>
-                <button class="main-button" onclick="startExperience()">立即体验</button>
-                <div style="margin-top:16px">
-                    <button class="main-button" onclick="openConfigPage()" style="background:#ffe; color:#764ba2">打开配置</button>
-                </div>
-                <div class="tips">
-                    <p>体验流程说明：只需3分钟，即可看到您的穿搭效果！</p>
-                    <p>免费一键试穿，新体验新风尚。</p>
-                </div>
-                <div class="wechat-qr" id="wechat-qr">
-                    <!-- 微信扫码二维码将在这里显示 -->
-                    <img src="../public/placeholder-qr.png" alt="扫码关注公众号" id="wechat-qr-img">
-                    <p>微信扫码关注公众号，获取专属体验</p>
-                </div>
+            <!-- 视频背景 -->
+            <div class="welcome-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="background-overlay"></div>
             </div>
+            
+            <!-- 主要内容区域 -->
+            <div class="welcome-content">
+                <!-- 左下角装饰图标 - 需要人工下载到 renderer/images/welcome-corner-icon.png -->
+                <div class="welcome-corner-icon" style="background-image: url('img/welcome-corner-icon.png');"></div>
+                
+                <!-- 中部图标区域 - 需要人工下载到 renderer/images/welcome-center-icon.png -->
+                <div class="welcome-center-icon" style="background-image: url('img/welcome-center-icon.png');"></div>
+                
+                <!-- TM商标 -->
+                <div class="welcome-tm-mark">TM</div>
+                
+                <!-- 主标题组 -->
+                <div class="main-title-group">
+                    <div class="logo-main">AI试衣间</div>
+                    <div class="subtitle-main">体验未来时尚</div>
+                </div>
+                
+                <!-- 描述文字 -->
+                <div class="welcome-description">
+                    <p class="description-text">AI智能试衣，1分钟呈现完美穿搭</p>
+                </div>
+                
+                <!-- 微信二维码区域 -->
+                <div class="wechat-qr-section">
+                    <div class="qr-container" id="wechat-qr">
+                        <div class="qr-background">
+                            <div class="qr-border"></div>
+                            <img src="../public/placeholder-qr.png" alt="扫码关注公众号" id="wechat-qr-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 扫描二维码标签 - 独立元素 -->
+                <div class="qr-label">扫描二维码<br>免费试衣</div>
+            </div>
+            
+            <!-- 右上角隐藏点击区域，用于打开配置页面 -->
+            <div id="welcome-secret-area" style="position: absolute; top: 0; right: 0; width: 100px; height: 100px; z-index: 1000; cursor: pointer;"></div>
         </div>
 
-        <!-- 2. 个人信息页 -->
+        <!-- 2. 拍照页 (Frame 2) -->
         <div id="profile-page" class="page">
+            <!-- 视频背景 -->
+            <div class="profile-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="profile-background-overlay"></div>
+            </div>
             <div class="camera-container">
                 <video id="camera-video" autoplay playsinline muted></video>
                 <canvas id="camera-canvas" style="display: none;"></canvas>
                 <div class="camera-overlay">
+                    <!-- 顶部右侧"结束试衣"按钮 -->
+                    <div class="camera-end-button">
+                        <button onclick="endSession()">结束试衣</button>
+                    </div>
+                    
+                    <!-- 拍照按钮 - 移动到顶部 -->
+                    <button class="capture-button" onclick="capturePhotoWithCountdown()" id="capture-btn">
+                        拍照
+                    </button>
+                    
+                    <!-- 指导文本 - 根据Figma Frame 2 -->
                     <div class="camera-instructions">
                         <h3>请站在摄像头前拍摄全身照</h3>
-                        <p>确保全身都在画面中，光线充足</p>
                     </div>
-                    <button class="generate-button floating" onclick="generateTryOn()" id="generate-btn">
-                        GENERATE TRY-ON
-                    </button>
+                    
+                    <!-- 提示文字 -->
+                    <div class="camera-hint">
+                        <p>确保全身都在画面中</p>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 2.5 拍照确认页 (Frame 4) -->
+        <div id="photo-confirm-page" class="page">
+            <!-- 照片预览区域 - 最大化显示 -->
+            <div class="photo-preview-container">
+                <img id="captured-photo" src="" alt="拍摄的照片">
+            </div>
+            
+            <!-- 按钮区域 - 根据Figma Frame 4 精确定位 -->
+            <div class="photo-confirm-buttons">
+                <!-- 画面确认按钮 -->
+                <button class="photo-confirm-btn" id="confirm-btn" onclick="confirmPhoto()">
+                    画面确认
+                </button>
+                <!-- 重新拍摄按钮 -->
+                <button class="photo-retake-btn" id="retake-btn" onclick="retakePhoto()">
+                    重新拍摄
+                </button>
+            </div>
+        </div>
+
+        <!-- 2.6 时尚偏好选择页 -->
+        <div id="preference-page" class="page">
+            <!-- 视频背景 -->
+            <div class="page-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="page-background-overlay"></div>
+            </div>
+            
+            <!-- 页面标题 -->
+            <h1 class="preference-title">选择你的时尚偏好</h1>
+            
+            <!-- 个性换装区域 - 根据Figma Group 2 -->
+            <div class="personal-styling-area" onclick="selectCustomStyle()">
+                <div class="styling-content">
+                    <div class="styling-icon">
+                        <div class="icon-circle"></div>
+                    </div>
+                    <div class="styling-text">
+                        <h2>个性换装</h2>
+                        <p>精选单品 自由搭配</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 推荐穿搭区域 - 根据Figma Group 3 -->
+            <div class="recommended-styling-area" onclick="selectRecommendedStyle()">
+                <div class="styling-content">
+                    <div class="styling-icon">
+                        <div class="icon-circle"></div>
+                    </div>
+                    <div class="styling-text">
+                        <h2>推荐穿搭</h2>
+                        <p>AI为您推荐完整造型</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部按钮 - 根据Figma Group 4 -->
+            <div class="preference-bottom-buttons">
+                <button class="btn-end-session" onclick="endSession()">结束试衣</button>
+                <button class="btn-go-back" onclick="goBackToPhotoConfirm()">返回上一页</button>
             </div>
         </div>
 
         <!-- 3. 服装选择页 -->
         <div id="clothing-page" class="page">
-            <div class="header">
-                <button class="back-button" onclick="goBack()">← 返回</button>
-                <h2>服装选择</h2>
+            <!-- 视频背景 -->
+            <div class="page-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="page-background-overlay"></div>
             </div>
+            
+            <!-- 顶部装饰条 - Group 10 -->
+            <div class="clothing-top-bar"></div>
+            
+            <!-- 性别选择tab - Group 8 -->
+            <div class="gender-tabs">
+                <div class="gender-tab female active" data-gender="female" onclick="window.clothingPage.switchGender('female')">
+                    <div class="lightning-icon left"></div>
+                    <span class="gender-text">女装</span>
+                </div>
+                <div class="gender-tab male" data-gender="male" onclick="window.clothingPage.switchGender('male')">
+                    <span class="gender-text">男装</span>
+                    <div class="lightning-icon left"></div>
+                </div>
+            </div>
+            
+            <!-- 上衣选择区域 - Group 6 -->
+            <div class="clothing-section tops" onclick="window.clothingPage.openClothingModal('tops')">
+                <div class="section-header-container">
+                    <div class="section-icon-circle">
+                    </div>
+                    <div class="section-header">上 衣</div>
+                </div>
+                <!-- 上衣预览区域，展示三件默认衣服 -->
+                <div class="clothing-preview-container" id="tops-preview-container">
+                    <!-- 衣服项将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 下衣选择区域 - Group 7 -->
+            <div class="clothing-section bottoms" onclick="window.clothingPage.openClothingModal('bottoms')">
+                <div class="section-header-container">
+                    <div class="section-icon-circle">
+                    </div>
+                    <div class="section-header">下 衣</div>
+                </div>
+                <!-- 下衣预览区域，展示三件默认衣服 -->
+                <div class="clothing-preview-container" id="bottoms-preview-container">
+                    <!-- 衣服项将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 底部按钮 - Group 5 -->
+            <div class="clothing-bottom-buttons">
+                <button class="btn-end-session" onclick="endSession()">结束试衣</button>
+                <button class="btn-start-tryon" onclick="console.log('🔘 按钮被点击'); if(window.clothingPage) { console.log('✅ clothingPage存在'); window.clothingPage.startTryOn(); } else { console.error('❌ clothingPage不存在'); alert('页面未正确加载，请刷新重试'); }">开始试衣</button>
+                <button class="btn-go-back" onclick="window.clothingPage.goBack()">返回上一页</button>
+            </div>
+        </div>
+        
+        <!-- 服装选择弹窗 - Frame 7 -->
+        <div id="clothing-modal" class="modal" style="display: none;">
+            <div class="modal-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                </video>
+                <div class="modal-background-overlay"></div>
+            </div>
+            
+            <!-- 顶部装饰条 -->
+            <div class="modal-top-bar"></div>
             
             <!-- 性别选择tab -->
-            <div class="gender-tabs">
-                <button class="gender-tab active" data-gender="female">女装</button>
-                <button class="gender-tab" data-gender="male">男装</button>
+            <div class="modal-gender-tabs">
+                <div class="modal-gender-tab female active" data-gender="female">
+                    <div class="lightning-icon left"></div>
+                    <span class="gender-text">女装</span>
+                </div>
+                <div class="modal-gender-tab male" data-gender="male">
+                    <span class="gender-text">男装</span>
+                    <div class="lightning-icon left"></div>
+                </div>
             </div>
             
-            <!-- 服装分类选择 -->
-            <div class="clothing-categories">
-                <div class="category-tabs">
-                    <button class="tab active" data-category="tops-bottoms">上衣&下衣</button>
-                    <button class="tab" data-category="dresses">裙子</button>
+            <!-- 服装列表区域 -->
+            <div class="modal-clothing-section">
+                <div class="modal-section-header-container">
+                    <div class="modal-section-icon-circle">
+                    </div>
+                    <div class="modal-section-header" id="modal-section-title">上 衣</div>
                 </div>
                 
-                <!-- 分类互斥提示 -->
-                <div class="category-notice" id="category-notice" style="display: none;">
-                    <p>⚠️ 裙子与上衣/下衣不能同时选择，选择裙子将自动取消上衣/下衣的选择</p>
-                </div>
-                
-                <!-- 上衣下衣子分类 -->
-                <div class="sub-category-tabs" id="sub-category-tabs" style="display: block;">
-                    <button class="sub-tab active" data-subcategory="tops">上衣</button>
-                    <button class="sub-tab" data-subcategory="bottoms">下衣</button>
-                </div>
-                
-                <div class="clothing-grid" id="clothing-grid">
+                <!-- 服装网格列表 -->
+                <div class="modal-clothing-grid" id="modal-clothing-grid">
                     <!-- 服装选项将在此处动态加载 -->
                 </div>
             </div>
             
-            <div class="selection-summary gold-card">
-                <div class="selected-item" id="selected-clothing">
-                    <span>尚未选择服装</span>
+            <!-- 底部按钮 -->
+            <div class="modal-bottom-buttons">
+                <button class="btn-end-session" onclick="endSession()">结束试衣</button>
+                <button class="btn-go-back" onclick="window.clothingPage.closeClothingModal()">返回上一页</button>
+            </div>
+        </div>
+
+        <!-- 4. 拟合结果页 - Frame 11 -->
+        <div id="results-page" class="page">
+            <!-- 背景图片 - 10月2日-封面 3 (0, 0, 1080x1920) -->
+            <div class="results-bg-image"></div>
+            
+            <!-- 结束试衣按钮 - Group 5 (89, 159, 267x59) -->
+            <div class="results-end-button-container">
+                <button class="results-end-button" onclick="endSession()">结束试衣</button>
+            </div>
+            
+            <!-- 结果图片容器 - Rectangle 111141399 (89, 250, 901x1385) -->
+            <div class="result-image-container">
+                <img id="result-image" src="" alt="试衣效果" style="display: none;">
+            </div>
+            
+            <!-- 选择图片保存按钮 - Group 14 (89, 1652, 901x81) -->
+            <div class="results-save-button-container">
+                <button class="results-save-button" onclick="window.resultsPage.saveImage()">选择图片保存</button>
+            </div>
+            
+            <!-- 重新选择试衣按钮 - Group 15 (89, 1750, 901x81) -->
+            <div class="results-retry-button-container">
+                <button class="results-retry-button" onclick="window.resultsPage.retryTryOn()">重新选择试衣</button>
+            </div>
+        </div>
+
+        <!-- 4.5 试衣效果进度页 - 根据Figma Frame 10 -->
+        <div id="fitting-progress-page" class="page">
+            <!-- 背景视频 -->
+            <div class="fitting-bg-image">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+            </div>
+            
+            <!-- 顶部装饰条 - Group 13 -->
+            <div class="fitting-top-bar"></div>
+            
+            <!-- 标题文字 -->
+            <div class="fitting-title-text">正在生成试衣效果</div>
+            
+            <!-- 中间视频区域 - Rectangle 111141399 -->
+            <div class="fitting-video-container">
+                <video autoplay muted loop playsinline>
+                    <source src="video/sample.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+            </div>
+        </div>
+
+        <!-- 5. 扫码获取图片页 -->
+        <div id="scan-to-get-page" class="page">
+            <!-- 视频背景 -->
+            <div class="page-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="page-background-overlay"></div>
+            </div>
+            
+            <!-- 顶部装饰条 -->
+            <div class="scan-top-bar"></div>
+            
+            <!-- 主要内容区域 -->
+            <div class="scan-main-content">
+                <!-- 二维码区域 -->
+                <div class="qr-code-container" id="scan-qr-container">
+                    <div class="loading-container" id="scan-loading">
+                        <div class="spinner"></div>
+                        <p>正在生成二维码...</p>
+                    </div>
+                    <img id="scan-qr-image" src="" alt="扫码获取图片" style="display: none;">
                 </div>
-                <button class="continue-button" onclick="proceedToFitting()" disabled id="proceed-btn">
-                    继续试穿
+                
+                <!-- 微信扫码下载提示 -->
+                <div class="scan-highlight-text">
+                    微信扫码下载试衣效果
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="scan-action-buttons">
+                <button class="btn btn-primary" onclick="continueFitting()">
+                    继续试衣
+                </button>
+                <button class="btn btn-danger" onclick="endSession()">
+                    结束试衣
                 </button>
             </div>
+            
+            <!-- 底部装饰条 -->
+            <div class="scan-bottom-bar"></div>
         </div>
 
-        <!-- 4. 拟合结果页 -->
-        <div id="results-page" class="page">
-            <div class="header">
-                <button class="back-button" onclick="goBack()">← 返回</button>
-                <h2>试衣效果</h2>
-                <button class="fullscreen-button" onclick="toggleFullscreen()" id="fullscreen-btn" title="全屏显示">⛶</button>
+        <!-- 6. 扫码下载图片页 - Frame 12 -->
+        <div id="download-page" class="page">
+            <!-- 背景视频 - 10月2日-封面 3 (0, 0, 1080x1920) -->
+            <div class="download-bg-image">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
             </div>
-            <div class="results-content gold-card" style="background: transparent">
-                <div class="result-main-content">
-                    <div class="result-image-container">
-                        <img id="result-image" src="" alt="试衣效果" style="display: none;">
-                        <div class="loading-indicator" id="loading-indicator">
-                            <div class="spinner"></div>
-                            <p>您的时尚偶像好</p>
-                            <div class="progress-text" id="progress-text">正在生成中...</div>
-                        </div>
-                    </div>
-                    <div class="style-info" id="style-info" style="display: none;">
-                        <div class="style-tag">走秀风</div>
-                        <div class="style-tag">时尚海报风</div>
-                    </div>
-                </div>
-                <div class="result-actions" id="result-actions" style="display: none;">
-                    <button class="action-button secondary" onclick="retryFitting()">重新选择</button>
-                    <button class="action-button primary" onclick="saveImage()">保存图片</button>
-                </div>
+            
+            <!-- 顶部进度条 - Group 12 (90, 213, 901x22) -->
+            <div class="download-top-bar">
+                <div class="download-progress-bar" id="download-progress-bar"></div>
+            </div>
+            
+            <!-- 二维码容器 - Rectangle 111141400 (344, 614, 424x424) -->
+            <div class="download-qr-container">
+                <img id="download-qr-code" src="" alt="扫码下载" style="display: none;">
+            </div>
+            
+            <!-- 微信扫码提示 - Group 16 (90, 1091, 901x81) -->
+            <div class="download-tip-container">
+                <div class="download-tip-button">微信扫码下载试衣效果</div>
+            </div>
+            
+            <!-- 继续试衣按钮 - Group 14 (90, 1652, 901x81) -->
+            <div class="download-continue-button-container">
+                <button class="download-continue-button" onclick="window.downloadPage.continueTryOn()">继续试衣</button>
+            </div>
+            
+            <!-- 结束试衣按钮 - Group 15 (90, 1750, 901x81) -->
+            <div class="download-end-button-container">
+                <button class="download-end-button" onclick="endSession()">结束试衣</button>
+            </div>
+            
+            <!-- 倒计时显示（可选） -->
+            <div class="download-countdown-display" style="display: none;">
+                倒计时: <span id="download-countdown">60</span>秒
             </div>
         </div>
 
-        <!-- 5. 穿搭风格页 -->
+        <!-- 7. 穿搭风格页 -->
         <div id="style-page" class="page">
+            <!-- 视频背景 -->
+            <div class="page-background">
+                <video autoplay muted loop playsinline>
+                    <source src="video/bg.mp4" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+                <div class="page-background-overlay"></div>
+            </div>
             <div class="header">
-                <button class="back-button" onclick="goBack()">← 返回</button>
+                <button class="btn btn-secondary btn-circle back-button" onclick="goBack()">← 返回</button>
                 <h2>选择风格</h2>
             </div>
             <div class="style-options">
@@ -158,129 +451,94 @@
                         <p>奢华精致，彰显品味</p>
                     </div>
                 </div>
-                <button class="confirm-style-button" onclick="confirmStyle()">确认风格</button>
+                <button class="btn btn-primary confirm-style-button" onclick="confirmStyle()">确认风格</button>
             </div>
         </div>
 
-        <!-- 6. 下载页面 -->
-        <div id="download-page" class="page">
-            <div class="header">
-                <h2>保存效果</h2>
-            </div>
-            <div class="download-content gold-card">
-                <div class="qr-section">
-                    <div class="qr-code-container">
-                        <canvas id="qr-canvas"></canvas>
-                        <div id="qr-loading">生成二维码中...</div>
-                    </div>
-                    <p>微信扫码下载试衣效果图</p>
-                </div>
-                <div class="download-info">
-                    <p>扫码后可获得：</p>
-                    <ul>
-                        <li>高清试衣效果图</li>
-                        <li>服装购买链接</li>
-                        <li>专属优惠信息</li>
-                    </ul>
-                </div>
-                <div class="countdown-section">
-                    <div class="countdown" id="countdown">60</div>
-                    <p>秒后自动返回首页</p>
-                    <button class="back-home-button" onclick="backToCamera()">立即返回照相</button>
-                </div>
-            </div>
-        </div>
 
-        <!-- 7. 配置页面 -->
-        <div id="config-page" class="page">
-            <div class="header">
-                <button class="back-button" onclick="goBack()">← 返回</button>
-                <h2>配置</h2>
-            </div>
-            <div style="padding:20px; overflow:auto">
-                <div style="margin-bottom:16px">
-                    <h3>API服务器</h3>
-                    <div class="field-group">
-                        <label>API服务器域名</label>
-                        <input id="cfg-api-server-url" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" placeholder="https://api.0086.xyz" />
-                        <small style="color:#666; font-size:12px;">默认值: https://api.0086.xyz</small>
+        <!-- 8. 配置对话框（替代单独页面） -->
+        <div id="config-modal" class="modal modal-config" style="display: none;">
+            <div class="modal-content">
+                <!-- 标题栏 -->
+                <div class="modal-header">
+                    <h2>配置</h2>
+                    <button type="button" onclick="closeConfig()" class="modal-close btn btn-secondary btn-circle">✕</button>
+                </div>
+                
+                <!-- 配置内容区域（可滚动） -->
+                <div class="modal-body">
+                    <!-- 登录方式配置 -->
+                    <div style="margin-bottom:16px">
+                        <h3>登录方式</h3>
+                        <div class="field-group">
+                            <label>选择登录方式</label>
+                            <select id="cfg-login-type" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px">
+                                <option value="wechat">微信公众号登录</option>
+                                <option value="third_party">第三方二维码登录</option>
+                            </select>
+                            <small style="color:#666; font-size:12px; margin-top:4px; display:block;">选择后将应用于后续登录流程</small>
+                        </div>
                     </div>
-                    <div class="field-group">
-                        <button type="button" onclick="testApiServerConnection()" style="margin-top:8px; padding:8px 16px; background:#17a2b8; color:white; border:none; border-radius:4px; cursor:pointer;">测试API服务器连接</button>
-                        <div id="api-server-test-result" style="margin-top:8px; padding:8px; border-radius:4px; display:none;"></div>
+                    
+                    <!-- API服务器配置 -->
+                    <div style="margin-bottom:16px">
+                        <h3>API服务器</h3>
+                        <div class="field-group">
+                            <label>API服务器域名</label>
+                            <input id="cfg-api-server-url" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" placeholder="https://clothing-api.0086studios.xyz" />
+                            <small style="color:#666; font-size:12px;">默认值: https://clothing-api.0086studios.xyz</small>
+                        </div>
+                        <div class="field-group">
+                            <button type="button" onclick="testApiServerConnection()" class="btn btn-secondary" style="margin-top:8px;">测试API服务器连接</button>
+                            <div id="api-server-test-result" style="margin-top:8px; padding:8px; border-radius:4px; display:none;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 设备信息配置 -->
+                    <div style="margin-bottom:16px">
+                        <h3>设备信息</h3>
+                        <div class="field-group">
+                            <label>MAC地址</label>
+                            <input id="cfg-device-mac" type="text" readonly style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background-color:#f5f5f5" />
+                            <button type="button" onclick="refreshMacAddress()" class="btn btn-secondary" style="margin-top:8px;">刷新</button>
+                        </div>
+                        <div class="field-group">
+                            <label>摄像头设备</label>
+                            <select id="cfg-camera-device" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px">
+                                <option value="">正在加载摄像头设备...</option>
+                            </select>
+                            <button type="button" onclick="refreshCameraList()" class="btn btn-secondary" style="margin-top:8px;">刷新摄像头列表</button>
+                            <button type="button" onclick="switchCamera()" class="btn btn-secondary" style="margin-top:8px; margin-left:8px;">切换摄像头</button>
+                        </div>
+                        <div class="field-group">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input id="cfg-use-native-resolution" type="checkbox" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;" />
+                                <span>使用摄像头原生分辨率</span>
+                            </label>
+                            <small style="color:#666; font-size:12px; margin-top:4px; display:block;">
+                                推荐Canon等专业摄像机启用，可避免设备重启，提升初始化速度
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- 窗口显示配置 -->
+                    <div style="margin-bottom:16px">
+                        <h3>窗口显示</h3>
+                        <div class="field-group">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input id="cfg-start-fullscreen" type="checkbox" style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;" />
+                                <span>启动时自动全屏</span>
+                            </label>
+                            <small style="color:#666; font-size:12px; margin-top:4px; display:block;">
+                                重启应用后生效，启用后将隐藏标题栏和窗口边框
+                            </small>
+                        </div>
                     </div>
                 </div>
-                <div style="margin-bottom:16px">
-                    <h3>RunningHub</h3>
-                    <div class="field-group">
-                        <label>API Key</label>
-                        <input id="cfg-runninghub-apiKey" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>Base URL</label>
-                        <input id="cfg-runninghub-baseUrl" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>单件服装工作流ID (裙子/单上衣)</label>
-                        <input id="cfg-runninghub-singleItemWorkflowId" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" placeholder="用于裙子或单上衣的工作流ID" />
-                    </div>
-                    <div class="field-group">
-                        <label>上衣+下衣工作流ID</label>
-                        <input id="cfg-runninghub-topBottomWorkflowId" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" placeholder="用于上衣和下衣组合的工作流ID" />
-                    </div>
-                </div>
-                <div style="margin-bottom:16px">
-                    <h3>微信</h3>
-                    <div class="field-group">
-                        <label>App ID</label>
-                        <input id="cfg-wechat-appId" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>App Secret</label>
-                        <input id="cfg-wechat-appSecret" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>Token</label>
-                        <input id="cfg-wechat-token" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>Encoding AES Key</label>
-                        <input id="cfg-wechat-encodingAESKey" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                </div>
-                <div style="margin-bottom:16px">
-                    <h3>服务器</h3>
-                    <div class="field-group">
-                        <label>Host</label>
-                        <input id="cfg-server-host" type="text" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <label>Port</label>
-                        <input id="cfg-server-port" type="number" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px" />
-                    </div>
-                    <div class="field-group">
-                        <button type="button" onclick="testApiConnection()" style="margin-top:8px; padding:8px 16px; background:#17a2b8; color:white; border:none; border-radius:4px; cursor:pointer;">测试API连接</button>
-                        <div id="api-test-result" style="margin-top:8px; padding:8px; border-radius:4px; display:none;"></div>
-                    </div>
-                </div>
-                <div style="margin-bottom:16px">
-                    <h3>设备信息</h3>
-                    <div class="field-group">
-                        <label>MAC地址</label>
-                        <input id="cfg-device-mac" type="text" readonly style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; background-color:#f5f5f5" />
-                        <button type="button" onclick="refreshMacAddress()" style="margin-top:8px; padding:4px 8px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">刷新</button>
-                    </div>
-                    <div class="field-group">
-                        <label>摄像头设备</label>
-                        <select id="cfg-camera-device" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px">
-                            <option value="">正在加载摄像头设备...</option>
-                        </select>
-                        <button type="button" onclick="refreshCameraList()" style="margin-top:8px; padding:4px 8px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer;">刷新摄像头列表</button>
-                        <button type="button" onclick="switchCamera()" style="margin-top:8px; margin-left:8px; padding:4px 8px; background:#ffc107; color:black; border:none; border-radius:4px; cursor:pointer;">切换摄像头</button>
-                    </div>
-                </div>
-                <div>
-                    <button class="continue-button" id="cfg-save-btn" onclick="saveConfig()">保存配置</button>
+                
+                <!-- 保存按钮（固定在底部） -->
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="cfg-save-btn" onclick="saveConfig()">保存配置</button>
                 </div>
             </div>
         </div>
@@ -296,15 +554,47 @@
 
     <!-- 错误提示 -->
     <div id="error-modal" class="modal" style="display: none;">
-        <div class="modal-content gold-card">
+        <div class="modal-content">
             <h3>提示</h3>
             <p id="error-message"></p>
-            <button onclick="closeErrorModal()">确定</button>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeErrorModal()">确定</button>
+            </div>
         </div>
     </div>
 
     <script src="api-client.js"></script>
-    <script src="app.js"></script>
+    
+    <!-- 配置和常量 -->
+    <script src="config/constants.js"></script>
+    
+    <!-- 核心模块 -->
+    <script src="core/EventBus.js"></script>
+    <script src="core/AppState.js"></script>
+    <script src="core/PageManager.js"></script>
+    
+    <!-- 工具函数 -->
+    <script src="utils/camera.js"></script>
+    
+    <!-- 公共组件 -->
+    <script src="components/Notification.js"></script>
+    <script src="components/Loading.js"></script>
+    
+    <!-- 页面模块 -->
+    <script src="pages/WelcomePage.js"></script>
+    <script src="pages/ProfilePage.js"></script>
+    <script src="pages/PhotoConfirmPage.js"></script>
+    <script src="pages/PreferencePage.js"></script>
+    <script src="pages/ClothingPage.js"></script>
+    <script src="pages/FittingProgressPage.js"></script>
+    <script src="pages/ResultsPage.js"></script>
+    <script src="pages/DownloadPage.js"></script>
+    
+    <!-- 主入口（必须最后加载） -->
+    <script src="main.js"></script>
+    
+    <!-- 旧版app.js已废弃，功能已迁移到模块化文件 -->
+    <!-- <script src="app.js"></script> -->
     <script>
         // 检查AppState和ApiClient是否已正确加载
         if (typeof AppState === 'undefined') {
@@ -340,6 +630,6 @@
         }
     </script>
     <script src="fullscreen.js"></script>
+    <script src="test-app-state.js"></script>
 </body>
 </html>
-

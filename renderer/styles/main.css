@@ -1,0 +1,90 @@
+/* 主样式文件 - 导入所有样式模块 */
+
+/* 基础样式 */
+@import url('./base/variables.css');
+@import url('./base/reset.css');
+@import url('./base/typography.css');
+
+/* 通用组件样式 */
+@import url('./components/button.css');
+@import url('./components/modal.css');
+@import url('./components/header.css');
+
+/* 页面样式 */
+@import url('./pages/welcome.css');
+@import url('./pages/camera.css');
+@import url('./pages/photo-confirm.css');
+@import url('./pages/preference.css');
+@import url('./pages/clothing.css');
+@import url('./pages/results.css');
+
+/* 动画效果 */
+.fade-in {
+  animation: fadeInElegant 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.bounce-in {
+  animation: bounceInElegant 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes bounceInElegant {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  70% { transform: scale(0.9); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInElegant {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 通用加载层样式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+.loading-content {
+  background: var(--pure-white);
+  padding: var(--space-3xl);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-luxury);
+}
+
+.spinner {
+  width: 56px;
+  height: 56px;
+  border: 4px solid var(--pale-gray);
+  border-top: 4px solid var(--antique-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--space-lg);
+}
+
+.spinner.large {
+  width: 80px;
+  height: 80px;
+  border-width: 6px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

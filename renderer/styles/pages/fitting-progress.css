@@ -1,0 +1,108 @@
+/* 等待试穿效果页面样式 - 根据Figma Frame 10 */
+
+#fitting-progress-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+}
+
+#fitting-progress-page.page.active {
+  display: block;
+}
+
+/* 背景视频 - 10月2日-封面 3 (0, 0, 1080x1920) */
+.fitting-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.fitting-bg-image video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 顶部装饰条 - Group 13 (99, 369, 901x37) */
+.fitting-top-bar {
+  position: absolute;
+  width: 901px;
+  height: 37px;
+  left: 99px;
+  top: 369px;
+  z-index: 1;
+  --progress-width: 0px;  /* CSS变量，用于JS控制进度 */
+}
+
+/* Group 13 内部矩形 - Rectangle 111141400 (0, 0, 901x37) */
+.fitting-top-bar::before {
+  content: '';
+  position: absolute;
+  width: 901px;
+  height: 37px;
+  left: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 11px;
+}
+
+/* Group 13 内部渐变条 - Rectangle 111141401 (0, 4, 387x29) - 进度条 */
+.fitting-top-bar::after {
+  content: '';
+  position: absolute;
+  width: var(--progress-width);  /* 使用CSS变量控制宽度 */
+  max-width: 901px;  /* 最大宽度 */
+  height: 29px;
+  left: 0;
+  top: 4px;
+  background: linear-gradient(90deg, rgba(253, 252, 205, 1) 0%, rgba(255, 235, 18, 1) 100%);
+  border-radius: 11px;
+  transition: width 0.3s ease-out;  /* 平滑过渡 */
+}
+
+/* 标题文字 - 正在生成试衣效果 (89, 287, 921x49) */
+.fitting-title-text {
+  position: absolute;
+  width: 921px;
+  height: 49px;
+  left: 89px;
+  top: 287px;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.4em;  /* 140% */
+  letter-spacing: 0.05em;  /* 140% 字符间距 */
+  text-align: center;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* 中间视频区域 - Rectangle 111141399 (99, 463, 901x1214) */
+.fitting-video-container {
+  position: absolute;
+  width: 901px;
+  height: 1214px;
+  left: 99px;
+  top: 463px;
+  background: #D9D9D9;
+  border-radius: 37px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.fitting-video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

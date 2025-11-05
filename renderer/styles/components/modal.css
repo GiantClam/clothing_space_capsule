@@ -1,0 +1,188 @@
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(10px);
+  /* 确保在缩放时也能正常显示 */
+  overflow-y: auto;
+  padding: 20px 0;
+  /* 跟随应用窗口缩放 */
+  transform-origin: center center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--pure-white);
+  padding: var(--space-3xl);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: var(--shadow-luxury);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2xl);
+  /* 为配置弹窗添加拖拽功能 */
+  cursor: move;
+  user-select: none;
+}
+
+.modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--primary-black);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--soft-gray);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--pale-gray);
+  color: var(--primary-black);
+}
+
+.modal-body {
+  margin-bottom: var(--space-2xl);
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+}
+
+/* 配置页面模态框特殊样式 */
+.modal-config {
+  /* 继承父元素的transform，确保跟随缩放 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.modal-config .modal-content {
+  max-width: 600px;
+  max-height: 90vh;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 24px;
+  /* 确保在缩放时居中并跟随缩放 */
+  transform-origin: center center;
+  position: absolute;
+  /* 默认居中位置 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 拖拽时使用的属性 */
+  transition: none;
+}
+
+/* 针对竖屏应用在横屏显示的适配 */
+@media (max-height: 800px) {
+  .modal-config .modal-content {
+    max-height: 85vh;
+    padding: 16px;
+    max-width: 500px;
+  }
+  
+  .modal-config .modal-content .modal-header {
+    margin-bottom: 12px;
+  }
+  
+  .modal-config .modal-content .modal-header h2 {
+    font-size: 18px;
+  }
+  
+  .modal-config .modal-content .modal-body {
+    margin-bottom: 12px;
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-height: 600px) {
+  .modal-config .modal-content {
+    max-height: 95vh;
+    padding: 12px;
+    max-width: 450px;
+  }
+  
+  .modal-config .modal-content .modal-header {
+    margin-bottom: 8px;
+  }
+  
+  .modal-config .modal-content .modal-header h2 {
+    font-size: 16px;
+  }
+  
+  .modal-config .modal-content .modal-body {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .modal-config .modal-content .modal-body h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  
+  .modal-config .modal-content input,
+  .modal-config .modal-content select,
+  .modal-config .modal-content button {
+    padding: 6px;
+    font-size: 14px;
+  }
+}
+
+.modal-config .modal-content .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: var(--space-xl);
+}
+
+.modal-config .modal-content .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-config .modal-content .modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.modal-config .modal-content .modal-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}

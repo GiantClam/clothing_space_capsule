@@ -4,7 +4,7 @@
 module.exports = {
     // API 服务器配置
     apiServer: {
-        url: process.env.API_SERVER_URL || 'http://localhost:4001'
+        url: process.env.API_SERVER_URL || 'https://clothing-api.0086studios.xyz'
     },
 
     // RunningHub API 配置
@@ -48,4 +48,3 @@ module.exports = {
         maxImageSize: 10 * 1024 * 1024 // 10MB
     }
 };
-

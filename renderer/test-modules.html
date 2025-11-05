@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模块加载测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .module-section {
+            margin-bottom: 20px;
+        }
+        .module-section h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        .module-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status.success {
+            background: #28a745;
+        }
+        .status.error {
+            background: #dc3545;
+        }
+        .module-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        .module-info {
+            color: #6c757d;
+            font-size: 12px;
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .summary h3 {
+            margin: 0 0 10px 0;
+        }
+        .summary .stats {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .test-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 模块化架构加载测试</h1>
+        
+        <div class="module-section">
+            <h2>📦 配置模块</h2>
+            <div id="config-modules"></div>
+        </div>
+        
+        <div class="module-section">
+            <h2>⚙️ 核心模块</h2>
+            <div id="core-modules"></div>
+        </div>
+        
+        <div class="module-section">
+            <h2>🧩 公共组件</h2>
+            <div id="component-modules"></div>
+        </div>
+        
+        <div class="module-section">
+            <h2>🔧 工具函数</h2>
+            <div id="util-modules"></div>
+        </div>
+        
+        <div class="module-section">
+            <h2>📄 页面模块</h2>
+            <div id="page-modules"></div>
+        </div>
+        
+        <div class="summary" id="summary">
+            <h3>加载统计</h3>
+            <div class="stats">
+                <span id="success-count">0</span> / <span id="total-count">0</span> 模块加载成功
+            </div>
+        </div>
+        
+        <div class="test-buttons">
+            <button onclick="testNavigation()">测试页面导航</button>
+            <button onclick="testEventBus()">测试事件总线</button>
+            <button onclick="testNotification()">测试通知</button>
+            <button onclick="testLoading()">测试加载</button>
+        </div>
+    </div>
+
+    <!-- 引入所有模块（按正确顺序） -->
+    <script src="config/constants.js"></script>
+    <script src="core/EventBus.js"></script>
+    <script src="core/AppState.js"></script>
+    <script src="core/PageManager.js"></script>
+    <script src="utils/camera.js"></script>
+    <script src="components/Notification.js"></script>
+    <script src="components/Loading.js"></script>
+    <script src="api-client.js"></script>
+    <script src="pages/WelcomePage.js"></script>
+    <script src="pages/ProfilePage.js"></script>
+    <script src="pages/PhotoConfirmPage.js"></script>
+    <script src="pages/PreferencePage.js"></script>
+    <script src="pages/ClothingPage.js"></script>
+    <script src="pages/ResultsPage.js"></script>
+    <script src="main.js"></script>
+
+    <script>
+        // 模块检查配置
+        const moduleChecks = {
+            config: [
+                { name: 'APP_CONSTANTS', check: () => typeof window.APP_CONSTANTS !== 'undefined' }
+            ],
+            core: [
+                { name: 'EventBus', check: () => typeof window.eventBus !== 'undefined' },
+                { name: 'AppState', check: () => typeof window.appState !== 'undefined' },
+                { name: 'PageManager', check: () => typeof window.pageManager !== 'undefined' }
+            ],
+            components: [
+                { name: 'Notification', check: () => typeof window.notification !== 'undefined' },
+                { name: 'Loading', check: () => typeof window.loading !== 'undefined' }
+            ],
+            utils: [
+                { name: 'cameraUtils', check: () => typeof window.cameraUtils !== 'undefined' }
+            ],
+            pages: [
+                { name: 'WelcomePage', check: () => window.pageManager && window.pageManager.pages.has('welcome-page') },
+                { name: 'ProfilePage', check: () => window.pageManager && window.pageManager.pages.has('profile-page') },
+                { name: 'PhotoConfirmPage', check: () => window.pageManager && window.pageManager.pages.has('photo-confirm-page') },
+                { name: 'PreferencePage', check: () => window.pageManager && window.pageManager.pages.has('preference-page') },
+                { name: 'ClothingPage', check: () => window.pageManager && window.pageManager.pages.has('clothing-page') },
+                { name: 'ResultsPage', check: () => window.pageManager && window.pageManager.pages.has('results-page') }
+            ]
+        };
+
+        // 渲染模块状态
+        function renderModuleStatus() {
+            let totalCount = 0;
+            let successCount = 0;
+
+            Object.keys(moduleChecks).forEach(category => {
+                const container = document.getElementById(`${category}-modules`);
+                const modules = moduleChecks[category];
+                
+                modules.forEach(module => {
+                    totalCount++;
+                    const isLoaded = module.check();
+                    if (isLoaded) successCount++;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'module-item';
+                    item.innerHTML = `
+                        <div class="status ${isLoaded ? 'success' : 'error'}"></div>
+                        <div class="module-name">${module.name}</div>
+                        <div class="module-info">${isLoaded ? '✅ 已加载' : '❌ 未加载'}</div>
+                    `;
+                    container.appendChild(item);
+                });
+            });
+
+            // 更新统计
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('success-count').textContent = successCount;
+            
+            // 更新摘要颜色
+            const summary = document.getElementById('summary');
+            if (successCount === totalCount) {
+                summary.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+            } else if (successCount > 0) {
+                summary.style.background = 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)';
+            } else {
+                summary.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+            }
+        }
+
+        // 测试页面导航
+        function testNavigation() {
+            if (!window.pageManager) {
+                alert('❌ PageManager未加载');
+                return;
+            }
+            
+            console.log('🧪 测试页面导航功能');
+            console.log('注册的页面:', Array.from(window.pageManager.pages.keys()));
+            
+            alert('✅ 页面导航功能正常\n\n注册的页面:\n' + 
+                  Array.from(window.pageManager.pages.keys()).map(p => `- ${p}`).join('\n'));
+        }
+
+        // 测试事件总线
+        function testEventBus() {
+            if (!window.eventBus) {
+                alert('❌ EventBus未加载');
+                return;
+            }
+            
+            console.log('🧪 测试事件总线功能');
+            
+            // 订阅测试事件
+            window.eventBus.on('test-event', (data) => {
+                console.log('✅ 接收到测试事件:', data);
+                alert('✅ 事件总线功能正常\n\n接收到数据: ' + JSON.stringify(data));
+            });
+            
+            // 触发测试事件
+            window.eventBus.emit('test-event', { 
+                message: '这是一个测试事件',
+                timestamp: Date.now()
+            });
+        }
+
+        // 测试通知
+        function testNotification() {
+            if (!window.notification) {
+                alert('❌ Notification组件未加载');
+                return;
+            }
+            
+            console.log('🧪 测试通知组件');
+            window.notification.success('通知组件测试成功！');
+            
+            setTimeout(() => {
+                window.notification.info('这是一条信息通知');
+            }, 1000);
+            
+            setTimeout(() => {
+                window.notification.warning('这是一条警告通知');
+            }, 2000);
+        }
+
+        // 测试加载
+        function testLoading() {
+            if (!window.loading) {
+                alert('❌ Loading组件未加载');
+                return;
+            }
+            
+            console.log('🧪 测试加载组件');
+            window.loading.show('测试加载中...', '请稍候');
+            
+            setTimeout(() => {
+                window.loading.updateMessage('即将完成...', '还有3秒');
+            }, 2000);
+            
+            setTimeout(() => {
+                window.loading.hide();
+                window.notification.success('加载组件测试完成！');
+            }, 5000);
+        }
+
+        // 页面加载完成后执行检查
+        window.addEventListener('load', () => {
+            console.log('📋 开始检查模块加载状态...');
+            renderModuleStatus();
+            console.log('✅ 模块检查完成');
+        });
+    </script>
+</body>
+</html>

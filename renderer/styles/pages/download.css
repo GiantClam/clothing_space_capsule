@@ -1,0 +1,224 @@
+/* 扫码下载图片页面样式 - 根据Figma Frame 12 */
+
+#download-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+}
+
+#download-page.page.active {
+  display: block;
+}
+
+/* 背景视频 - 10月2日-封面 3 (0, 0, 1080x1920) */
+.download-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.download-bg-image video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 顶部进度条 - Group 12 (90, 213, 901x22) */
+.download-top-bar {
+  position: absolute;
+  width: 901px;
+  height: 22px;
+  left: 90px;
+  top: 213px;
+  z-index: 1;
+}
+
+/* 进度条背景 - Rectangle (0, 0, 901x22) */
+.download-top-bar::before {
+  content: '';
+  position: absolute;
+  width: 901px;
+  height: 22px;
+  left: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 11px;
+}
+
+/* 进度条前景 - Rectangle (602, 0, 299x22) */
+.download-progress-bar {
+  position: absolute;
+  width: 100%;
+  height: 22px;
+  left: 0;
+  top: 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 11px;
+  transition: width 1s linear;
+  z-index: 1;
+}
+
+/* 二维码容器 - Rectangle 111141400 (344, 614, 424x424) */
+.download-qr-container {
+  position: absolute;
+  width: 424px;
+  height: 424px;
+  left: 344px;
+  top: 614px;
+  background: #D9D9D9;
+  border-radius: 0px;
+  overflow: hidden;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-qr-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 微信扫码提示 - Group 16 (90, 1091, 901x81) */
+.download-tip-container {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 90px;
+  top: 1091px;
+  z-index: 2;
+}
+
+/* 微信扫码提示按钮 - Rectangle 111141386 (0, 0, 901x81) */
+.download-tip-button {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 0;
+  top: 0;
+  background: #003EDF;
+  border-radius: 86.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45em;  /* 145% */
+  letter-spacing: 0.4em;  /* 40% */
+  text-align: center;
+  color: #FFF9F9;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;  /* 仅作为提示，不可点击 */
+}
+
+/* 继续试衣按钮容器 - Group 14 (105, 45, 901x81) */
+.download-continue-button-container {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 105px;
+  top: 45px;
+  z-index: 2;
+}
+
+/* 继续试衣按钮 - Rectangle 111141386 (0, 0, 901x81) */
+.download-continue-button {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 0;
+  top: 0;
+  background: #003EDF;
+  border-radius: 86.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45em;  /* 145% */
+  letter-spacing: 1.35em;  /* 135% */
+  text-align: center;
+  color: #FFFFFF;
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-continue-button:hover {
+  background: #00D4C9;
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 结束试衣按钮容器 - Group 15 (105, 143, 901x81) */
+.download-end-button-container {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 105px;
+  top: 143px;
+  z-index: 2;
+}
+
+/* 结束试衣按钮 - Rectangle 111141386 (0, 0, 901x81) */
+.download-end-button {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 0;
+  top: 0;
+  background: #003EDF;
+  border-radius: 86.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45em;  /* 145% */
+  letter-spacing: 1.35em;  /* 135% */
+  text-align: center;
+  color: #FFFFFF;
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-end-button:hover {
+  background: #00D4C9;
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 倒计时显示（可选添加） */
+.download-countdown-display {
+  position: absolute;
+  left: 50%;
+  top: 1050px;
+  transform: translateX(-50%);
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-size: 32px;
+  color: #FFFFFF;
+  text-align: center;
+  z-index: 2;
+}

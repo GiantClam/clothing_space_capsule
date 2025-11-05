@@ -2,6 +2,11 @@
 // 复制此文件为 config.js 并填入实际的 API 密钥和配置信息
 
 module.exports = {
+    // API 服务器配置
+    apiServer: {
+        url: 'https://clothing-api.0086studios.xyz'
+    },
+
     // RunningHub API 配置
     runninghub: {
         apiKey: 'your_runninghub_api_key_here',
@@ -43,4 +48,3 @@ module.exports = {
         maxImageSize: 10 * 1024 * 1024 // 10MB
     }
 };
-

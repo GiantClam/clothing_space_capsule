@@ -116,59 +116,6 @@ app.post('/upload-photo', upload.single('photo'), (req, res) => {
     }
 });
 
-// 2. 创建试衣任务
-app.post('/create-fitting-task', (req, res) => {
-    try {
-        const { userPhotoPath, selectedClothing, openid } = req.body;
-
-        if (!userPhotoPath || !selectedClothing || !openid) {
-            return res.status(400).json({
-                success: false,
-                error: '缺少必要参数'
-            });
-        }
-
-        const taskId = `task_${taskCounter++}`;
-        const task = {
-            taskId: taskId,
-            userPhotoPath: userPhotoPath,
-            selectedClothing: selectedClothing,
-            openid: openid,
-            status: 'QUEUED',
-            createdAt: new Date(),
-            result: null
-        };
-
-        tasks.set(taskId, task);
-
-        // 模拟任务处理
-        setTimeout(() => {
-            task.status = 'RUNNING';
-            setTimeout(() => {
-                task.status = 'COMPLETED';
-                task.result = {
-                    imageUrl: `https://via.placeholder.com/400x600/667eea/ffffff?text=试衣效果-${selectedClothing.name}`,
-                    style: '时尚风格',
-                    confidence: 0.95
-                };
-            }, 3000);
-        }, 2000);
-
-        res.json({
-            success: true,
-            taskId: taskId,
-            taskStatus: task.status,
-            message: '任务创建成功'
-        });
-    } catch (error) {
-        console.error('创建任务错误:', error);
-        res.status(500).json({
-            success: false,
-            error: '创建任务失败: ' + error.message
-        });
-    }
-});
-
 // 3. 查询任务状态
 app.post('/query-task-status', (req, res) => {
     try {
@@ -270,7 +217,7 @@ app.post('/generate-download-qr', async (req, res) => {
 
         // 生成二维码
         const qrCode = await QRCode.toDataURL(JSON.stringify(qrData), {
-            width: 200,
+            width: 500, // 调整为至少500px
             margin: 2,
             color: {
                 dark: '#000000',

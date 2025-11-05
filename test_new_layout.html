@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, initial-scale=1.0, user-scalable=no">
+    <title>新布局预览 - 衣等舱</title>
+    <style>
+        body {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, #00E5CC 0%, #00B3A6 50%, #008F7A 100%);
+            color: white;
+            width: 1080px;
+            height: 1920px;
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        /* 顶部进度条 */
+        .progress-bar-background {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            z-index: 10;
+        }
+        
+        .progress-bar {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 8px;
+            background: #00FFE6;
+            border-radius: 20px;
+            z-index: 11;
+        }
+        
+        /* 主内容区域 */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            width: 100%;
+            padding: 200px 0;
+        }
+        
+        .logo {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 120px;
+            font-weight: 400;
+            color: white;
+            text-align: center;
+            letter-spacing: 20px;
+            margin-bottom: 80px;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 48px;
+            font-weight: 400;
+            color: white;
+            text-align: center;
+            letter-spacing: 12px;
+            margin-bottom: 200px;
+            line-height: 1.2;
+        }
+        
+        /* 底部区域 */
+        .bottom-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 0 60px 150px 60px;
+        }
+        
+        .wechat-qr {
+            width: 240px;
+            height: 240px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid #00FFE6;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 80px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .wechat-qr img {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            background: white;
+        }
+        
+        .description {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 24px;
+            font-weight: 400;
+            color: white;
+            text-align: center;
+            margin: 0 0 40px 0;
+            width: 100%;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        
+        .refresh-qr-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            letter-spacing: 1px;
+            min-width: 160px;
+        }
+        
+        .refresh-qr-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        /* 右上角点击区域 */
+        .config-click-area {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .test-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #00FFE6;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部进度条 -->
+    <div class="progress-bar-background"></div>
+    <div class="progress-bar"></div>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 主标题 -->
+        <div class="logo">衣等舱</div>
+        <div class="subtitle">AI试衣间</div>
+    </div>
+    
+    <!-- 底部区域 -->
+    <div class="bottom-content">
+        <!-- 微信二维码区域 -->
+        <div class="wechat-qr">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' font-family='Arial' font-size='14' fill='%23666'%3E二维码位置%3C/text%3E%3C/svg%3E" alt="扫码关注公众号">
+        </div>
+        
+        <p class="description">微信扫描二维码关注公众号，即可免费一件试穿<br>只需3分钟，即可体验到穿搭效果</p>
+        
+        <!-- 刷新按钮 -->
+        <button class="refresh-qr-button" onclick="handleRefresh()">
+            🔄 刷新二维码
+        </button>
+    </div>
+    
+    <!-- 右上角点击区域 -->
+    <div class="config-click-area" onclick="handleConfigClick()">
+        点击4次<br>打开配置
+    </div>
+    
+    <!-- 测试信息 -->
+    <div class="test-info">
+        <h3>新布局预览</h3>
+        <p>✅ 清爽的渐变背景</p>
+        <p>✅ 顶部进度条</p>
+        <p>✅ 居中的标题区域</p>
+        <p>✅ 底部二维码和说明</p>
+        <p>✅ 简洁的刷新按钮</p>
+        <p>点击次数: <span id="click-count">0</span></p>
+    </div>
+
+    <script>
+        let clickCount = 0;
+        let clickTimer = null;
+        
+        function handleConfigClick() {
+            clickCount++;
+            document.getElementById('click-count').textContent = clickCount;
+            
+            console.log('右上角点击，当前计数:', clickCount);
+            
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+            }
+            
+            clickTimer = setTimeout(() => {
+                console.log('连续点击超时，重置计数器');
+                clickCount = 0;
+                document.getElementById('click-count').textContent = clickCount;
+            }, 3000);
+            
+            if (clickCount >= 4) {
+                console.log('连续点击4次，打开配置页面');
+                alert('🎉 连续点击4次成功！\n新布局更加简洁清爽！');
+                
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                }
+                clickCount = 0;
+                document.getElementById('click-count').textContent = clickCount;
+            }
+        }
+        
+        function handleRefresh() {
+            console.log('刷新二维码按钮被点击');
+            alert('🔄 刷新二维码功能正常！\n新布局下的按钮更加优雅。');
+        }
+        
+        console.log('新布局页面尺寸:', {
+            body: {
+                width: document.body.offsetWidth,
+                height: document.body.offsetHeight
+            }
+        });
+    </script>
+</body>
+</html>

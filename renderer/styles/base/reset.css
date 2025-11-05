@@ -1,0 +1,175 @@
+/* 重置样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  /* 固定1080*1920尺寸 */
+  width: 1080px !important;
+  height: 1920px !important;
+  max-width: 1080px !important;
+  max-height: 1920px !important;
+  overflow: hidden !important;
+  position: relative;
+}
+
+body {
+  font-family: var(--font-body);
+  background: linear-gradient(135deg, var(--pure-white) 0%, var(--off-white) 100%);
+  color: var(--primary-black);
+  overflow: hidden !important;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  /* 固定1080*1920尺寸 */
+  width: 1080px !important;
+  height: 1920px !important;
+  max-width: 1080px !important;
+  max-height: 1920px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative;
+}
+
+#app {
+  /* 固定1080*1920尺寸 */
+  width: 1080px;
+  height: 1920px;
+  position: relative;
+  margin: 0 auto;
+}
+
+/* 页面通用样式 */
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  display: none;
+  flex-direction: column;
+  background: var(--pure-white);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 通用视频背景样式 */
+.page-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.page-background video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  z-index: -1;
+}
+
+.page-background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: -1;
+}
+
+.page.active {
+  display: flex;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--pale-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--antique-gold), var(--burnished-gold));
+  border-radius: 4px;
+  border: 1px solid var(--pale-gray);
+}
+
+/* 焦点可访问性 */
+button:focus, .tab:focus, .gender-tab:focus, .back-button:focus, .continue-button:focus, .confirm-style-button:focus, .action-button:focus {
+  outline: 2px solid var(--antique-gold);
+  outline-offset: 2px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .logo {
+      font-size: 56px;
+  }
+  
+  .clothing-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+  }
+  
+  .result-actions {
+      flex-direction: row;
+      width: auto;
+  }
+  
+  .style-categories {
+      gap: var(--space-md);
+  }
+  
+  .style-category {
+      padding: var(--space-lg);
+  }
+  
+  .header {
+      padding: var(--space-lg) var(--space-lg);
+  }
+  
+  .clothing-categories {
+      padding: var(--space-lg);
+  }
+  
+  .results-content {
+      padding: var(--space-lg);
+      flex-direction: column;
+  }
+  
+  .result-actions {
+      flex-direction: row;
+      width: 100%;
+  }
+  
+  
+  /* 确保在小屏幕上结果图片容器有足够的高度 */
+  .result-image-container {
+      min-height: 300px;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+  }
+}

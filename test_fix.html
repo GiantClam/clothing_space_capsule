@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试修复</title>
+</head>
+<body>
+    <h1>测试设备认证修复</h1>
+    <button id="testBtn">测试设备认证</button>
+    <div id="result"></div>
+
+    <script src="renderer/api-client.js"></script>
+    <script>
+        // 简化的AppState类用于测试
+        class TestAppState {
+            constructor() {
+                this.macAddress = null;
+            }
+
+            async getMacAddress() {
+                // 模拟获取MAC地址
+                this.macAddress = '00:11:22:33:44:55';
+                console.log('获取到MAC地址:', this.macAddress);
+            }
+
+            async ensureDeviceAuthenticated() {
+                try {
+                    // 检查是否已有认证令牌
+                    if (window.apiClient && window.apiClient.token) {
+                        console.log('设备已认证');
+                        return;
+                    }
+                    
+                    console.log('设备未认证，开始认证流程...');
+                    
+                    // 获取MAC地址用于设备认证
+                    if (!this.macAddress) {
+                        await this.getMacAddress();
+                    }
+                    
+                    if (this.macAddress) {
+                        // 处理MAC地址：去掉冒号，作为设备唯一标识
+                        const deviceId = this.macAddress.replace(/:/g, '');
+                        console.log('使用处理后的MAC地址进行设备认证:', this.macAddress, '->', deviceId);
+                        
+                        // 执行设备认证
+                        const authResponse = await window.apiClient.authenticateDevice(deviceId, '测试客户端');
+                        
+                        if (authResponse.success) {
+                            console.log('设备认证成功');
+                            // 认证成功后，API客户端会自动设置token和deviceId
+                        } else {
+                            throw new Error(authResponse.error || '设备认证失败');
+                        }
+                    } else {
+                        throw new Error('无法获取设备MAC地址进行认证');
+                    }
+                } catch (error) {
+                    console.error('设备认证失败:', error);
+                    throw error;
+                }
+            }
+        }
+
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '测试中...';
+            
+            try {
+                // 创建测试AppState实例
+                const testApp = new TestAppState();
+                
+                // 初始化API客户端
+                if (window.apiClient && typeof window.apiClient.initialize === 'function') {
+                    await window.apiClient.initialize();
+                }
+                
+                // 确保设备已认证
+                await testApp.ensureDeviceAuthenticated();
+                
+                // 检查设备状态
+                const deviceStatusResponse = await window.apiClient.getDeviceStatus();
+                resultDiv.innerHTML = `<pre>${JSON.stringify(deviceStatusResponse, null, 2)}</pre>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">错误: ${error.message}</p>`;
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

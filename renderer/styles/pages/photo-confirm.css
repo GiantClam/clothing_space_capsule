@@ -1,0 +1,129 @@
+/* 拍照确认页面样式 - 根据Figma Frame 4 */
+
+#photo-confirm-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  background: #000000;
+  overflow: hidden;
+}
+
+#photo-confirm-page.page.active {
+  display: block;
+}
+
+/* 照片预览区域 - 全屏显示 */
+.photo-preview-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px; /* 全屏高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000000;
+}
+
+#captured-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 保持照片比例，不裁剪，完整显示 */
+  display: block;
+  /* 不需要transform，因为拍照时已经处理好旋转和镜像 */
+}
+
+/* 按钮容器 - 移动到顶部，与ProfilePage的capture-button一致 */
+.photo-confirm-buttons {
+  position: absolute;
+  left: 0;
+  top: 113px; /* 与ProfilePage的capture-button一致 */
+  width: 1080px;
+  height: 245px; /* 105px（第一个按钮）+ 140px（间距+第二个按钮） */
+  z-index: 10; /* 确保按钮在照片上方 */
+  pointer-events: none; /* 允许点击穿透到照片 */
+}
+
+/* 按钮本身需要接收点击事件 */
+.photo-confirm-buttons button {
+  pointer-events: auto;
+}
+
+/* 画面确认按钮 - 根据Figma Frame 4 */
+.photo-confirm-btn {
+  position: absolute;
+  width: 587px;
+  height: 105px;
+  left: 249px;
+  top: 0; /* 1478px 相对于页面，0 相对于容器 */
+  background: rgba(0, 62, 223, 0.6);
+  border-radius: 86.5px;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45;
+  letter-spacing: 0.5em; /* 50% */
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0.5em; /* 补偿 letter-spacing */
+}
+
+.photo-confirm-btn:hover {
+  background: rgba(0, 52, 193, 0.7);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.photo-confirm-btn:active {
+  transform: translateY(0);
+  background: rgba(0, 42, 163, 0.8);
+}
+
+/* 重新拍摄按钮 - 根据Figma Frame 4 */
+.photo-retake-btn {
+  position: absolute;
+  width: 587px;
+  height: 105px;
+  left: 249px;
+  top: 140px; /* 1618 - 1478 = 140px */
+  background: rgba(0, 62, 223, 0.6);
+  border-radius: 86.5px;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45;
+  letter-spacing: 0.5em; /* 50% */
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 0.5em; /* 补偿 letter-spacing */
+}
+
+.photo-retake-btn:hover {
+  background: rgba(0, 52, 193, 0.7);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.photo-retake-btn:active {
+  transform: translateY(0);
+  background: rgba(0, 42, 163, 0.8);
+}
+

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1080x1920 竖屏测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .viewport-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .viewport-info h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .viewport-info p {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        
+        .target-size {
+            background: linear-gradient(180deg, #008F7A 0%, #006B5C 50%, #000000 100%);
+            width: 1080px;
+            height: 1920px;
+            border: 2px solid #01E1D6;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .size-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .current-size {
+            color: #01E1D6;
+            font-weight: bold;
+        }
+        
+        .target-size-text {
+            color: #01FFE5;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-info">
+        <h1>1080x1920 竖屏测试</h1>
+        <p>当前窗口尺寸: <span class="current-size" id="currentSize">-</span></p>
+        <p>目标尺寸: <span class="target-size-text">1080 x 1920</span></p>
+    </div>
+    
+    <div class="target-size" id="targetSize">
+        <div class="size-indicator">
+            目标尺寸: 1080 x 1920
+        </div>
+        
+        <div class="instructions">
+            <strong>使用说明：</strong><br>
+            1. 调整浏览器窗口大小到 1080 x 1920<br>
+            2. 或者使用开发者工具的设备模拟功能<br>
+            3. 绿色边框区域就是目标显示区域<br>
+            4. 启动主程序: <code>npm start</code>
+        </div>
+    </div>
+
+    <script>
+        function updateSize() {
+            const currentSize = document.getElementById('currentSize');
+            currentSize.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+            
+            const targetSize = document.getElementById('targetSize');
+            const scaleX = window.innerWidth / 1080;
+            const scaleY = window.innerHeight / 1920;
+            const scale = Math.min(scaleX, scaleY);
+            
+            if (scale < 1) {
+                targetSize.style.transform = `scale(${scale})`;
+                targetSize.style.transformOrigin = 'top left';
+            } else {
+                targetSize.style.transform = 'scale(1)';
+            }
+        }
+        
+        window.addEventListener('resize', updateSize);
+        updateSize();
+        
+        // 添加键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                // Ctrl+Enter 打开主程序
+                window.open('http://localhost:3000', '_blank');
+            }
+        });
+    </script>
+</body>
+</html>

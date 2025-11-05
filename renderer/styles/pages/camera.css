@@ -1,0 +1,287 @@
+/* 拍照页面样式 */
+#profile-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000 !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 拍照页面视频背景 - 隐藏 */
+.profile-background {
+  display: none; /* 隐藏视频背景 */
+}
+
+.profile-background video {
+  display: none; /* 隐藏视频 */
+}
+
+.profile-background-overlay {
+  display: none; /* 隐藏覆盖层 */
+}
+
+#profile-page.page.active {
+  display: flex;
+}
+
+.camera-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000000 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1; /* 确保摄像头容器在最上层 */
+}
+
+#camera-video {
+  /* 尺寸由JavaScript动态计算设置 */
+  width: auto;
+  height: auto;
+  object-fit: contain; /* 等比缩放，不裁剪，保证预览画面完整 */
+  object-position: center; /* 居中显示 */
+  transform: scaleX(-1) rotate(-90deg); /* 镜像翻转 + 逆时针旋转90度 */
+  transform-origin: center center;
+  background: #000; /* 黑边背景 */
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+  background: transparent;
+  z-index: 10;
+}
+
+/* 顶部右侧"结束试衣"按钮 - 根据Figma Frame 2 Group 5 */
+.camera-end-button {
+  position: absolute;
+  left: 406px;
+  top: 46px;
+  width: 267px;
+  height: 59px;
+  z-index: 10;
+}
+
+.camera-end-button button {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  border: none;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.95em;
+  color: #0E0000;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding-left: 0.95em; /* 补偿 letter-spacing */
+}
+
+.camera-end-button button:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.35);
+}
+
+.camera-end-button button:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.camera-instructions {
+  position: absolute;
+  width: 853px;
+  height: 90px;
+  top: 255px;
+  left: 104px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 0;
+}
+
+.camera-instructions h3 {
+  margin: 0;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 1.4;
+  text-align: center;
+  color: #F5EDED;
+  text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  padding: 0;
+}
+
+.camera-instructions p {
+  display: none; /* 移到独立的camera-hint元素 */
+}
+
+/* 提示文字 - 根据Figma Frame 2 Rectangle 111141385 */
+.camera-hint {
+  position: absolute;
+  left: 373px;
+  top: 372px;
+  width: 335px;
+  height: 63px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.camera-hint p {
+  margin: 0;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+  color: #F5EDED;
+  text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  padding: 0;
+}
+
+/* 拍照按钮 - 根据Figma设计稿，移动到顶部原camera-title位置 */
+.capture-button {
+  position: absolute;
+  width: 587px;
+  height: 105px;
+  left: 249px;
+  top: 113px; /* 原camera-title的位置 */
+  background: rgba(0, 62, 223, 0.6);
+  border-radius: 86.5px;
+  color: #FFFFFF;
+  border: none;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45;
+  letter-spacing: 0.5em; /* 50% */
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding-left: 0.5em; /* 补偿 letter-spacing */
+}
+
+.capture-button:hover {
+  background: rgba(0, 52, 193, 0.7);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.capture-button:active {
+  transform: translateY(0);
+  background: rgba(0, 42, 163, 0.8);
+}
+
+/* 倒计时按钮样式 */
+.capture-button:disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+  background: rgba(0, 62, 223, 0.6);
+  color: #FFFFFF;
+}
+
+.capture-button.countdown {
+  animation: countdownPulse 1s ease-in-out infinite;
+  letter-spacing: 0.35em; /* 35% - 倒计时时的字间距 */
+}
+
+@keyframes countdownPulse {
+  0% { 
+      transform: scale(1);
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  50% { 
+      transform: scale(1.02);
+      box-shadow: 0px 8px 16px rgba(0, 62, 223, 0.4);
+  }
+  100% { 
+      transform: scale(1);
+      box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* 摄像头错误提示 */
+.camera-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--pure-white);
+  text-align: center;
+  background: linear-gradient(135deg, var(--error) 0%, #6b0000 100%);
+}
+
+.camera-error h3 {
+  font-family: var(--font-display);
+  font-size: 36px;
+  margin-bottom: var(--space-lg);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  font-weight: 400;
+}
+
+.camera-error p {
+  font-family: var(--font-elegant);
+  font-size: 18px;
+  margin-bottom: var(--space-2xl);
+  opacity: 0.9;
+  font-style: italic;
+}
+
+.camera-error button {
+  background: rgba(255,255,255,0.15);
+  color: var(--pure-white);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md) var(--space-2xl);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(20px);
+  letter-spacing: 0.5px;
+}

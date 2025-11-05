@@ -1,0 +1,66 @@
+/* 时尚品牌主题变量 */
+:root {
+  /* 主色调 - 根据Figma设计稿调整 */
+  --primary-black: #0E0707;        /* 主黑色 (Figma) */
+  --charcoal: #1c1c1c;            /* 炭黑 */
+  --warm-gray: #2a2a2a;           /* 暖灰 */
+  --soft-gray: #4a4a4a;           /* 柔和灰 */
+  --light-gray: #8a8a8a;          /* 浅灰 */
+  --pale-gray: #e8e8e8;           /* 淡灰 */
+  --off-white: #F5EDED;           /* 米白 (Figma) */
+  --pure-white: #ffffff;          /* 纯白 */
+  
+  /* 时尚金色系 - 奢华感 */
+  --champagne: #f7e7ce;           /* 香槟金 */
+  --rose-gold: #e8b4a0;           /* 玫瑰金 */
+  --antique-gold: #d4af37;        /* 古金 */
+  --burnished-gold: #b8860b;      /* 磨砂金 */
+  --deep-gold: #8b7355;           /* 深金 */
+  
+  /* 时尚中性色 */
+  --taupe: #8b7d6b;               /* 驼色 */
+  --beige: #f5f5dc;               /* 米色 */
+  --cream: #fffdd0;               /* 奶油色 */
+  --ivory: #fffff0;               /* 象牙白 */
+  
+  /* 状态色 - 优雅处理 */
+  --success: #2d5a27;             /* 深绿 */
+  --warning: #b8860b;             /* 金色警告 */
+  --error: #8b0000;               /* 深红 */
+  --info: #4682b4;                /* 钢蓝 */
+  
+  /* 阴影系统 - 层次感 */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-strong: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-luxury: 0 24px 64px rgba(0, 0, 0, 0.2);
+  
+  /* 圆角系统 - 精致感 */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  
+  /* 字体系统 - 专业时尚 */
+  --font-display: 'Playfair Display', serif;      /* 标题字体 */
+  --font-body: 'Inter', sans-serif;               /* 正文字体 */
+  --font-elegant: 'Cormorant Garamond', serif;    /* 优雅字体 */
+  
+  /* 间距系统 - 黄金比例 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+  
+  /* 动态缩放变量 */
+  --scale-factor: 1;
+  --base-width: 1080;
+  --base-height: 1920;
+}

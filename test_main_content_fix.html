@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, initial-scale=1.0, user-scalable=no">
+    <title>main-content 布局修复测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft Sans Serif', sans-serif;
+        }
+        
+        #welcome-page {
+            position: relative;
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(180deg, #00E5CC 0%, #00B3A6 50%, #008F7A 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        .progress-section {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: 100px;
+            margin-bottom: 40px;
+            flex-shrink: 0;
+            height: auto;
+        }
+        
+        .progress-bar-background {
+            width: 600px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            position: relative;
+        }
+        
+        .progress-bar {
+            width: 200px;
+            height: 8px;
+            background: #00FFE6;
+            border-radius: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: auto;
+            min-height: 400px;
+            max-height: 800px;
+            flex-grow: 1;
+            flex-shrink: 0;
+            flex-basis: auto;
+            padding: 60px 40px;
+            position: relative;
+            z-index: 10;
+            border: 2px dashed rgba(255, 255, 255, 0.3); /* 测试边框 */
+        }
+        
+        .logo {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 80px;
+            font-weight: 400;
+            color: white;
+            text-align: center;
+            letter-spacing: 12px;
+            margin: 0 0 30px 0;
+            line-height: 1.1;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1;
+            position: relative;
+            z-index: 100;
+            width: 100%;
+            max-width: 800px;
+            border: 1px solid rgba(255, 255, 255, 0.5); /* 测试边框 */
+        }
+        
+        .subtitle {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            font-size: 32px;
+            font-weight: 400;
+            color: white;
+            text-align: center;
+            letter-spacing: 8px;
+            margin: 0;
+            line-height: 1.2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1;
+            position: relative;
+            z-index: 100;
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid rgba(255, 255, 255, 0.5); /* 测试边框 */
+        }
+        
+        .bottom-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 0 60px 100px 60px;
+            flex-shrink: 0;
+        }
+        
+        .wechat-qr {
+            width: 240px;
+            height: 240px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid #00FFE6;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 60px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .wechat-qr img {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            background: white;
+        }
+        
+        .description {
+            font-size: 20px;
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .refresh-qr-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        
+        .debug-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            max-width: 350px;
+            z-index: 1000;
+            line-height: 1.4;
+        }
+        
+        .debug-info h3 {
+            margin: 0 0 10px 0;
+            color: #00FFE6;
+            font-size: 14px;
+        }
+        
+        .status {
+            margin: 3px 0;
+            font-family: monospace;
+        }
+        
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div id="welcome-page">
+        <!-- 顶部进度条区域 -->
+        <div class="progress-section">
+            <div class="progress-bar-background">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <div class="logo">衣等舱</div>
+            <div class="subtitle">AI试衣间</div>
+        </div>
+        
+        <!-- 底部区域 -->
+        <div class="bottom-content">
+            <div class="wechat-qr">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='100' y='100' text-anchor='middle' dy='0.3em' font-family='Arial' font-size='14' fill='%23666'%3E二维码%3C/text%3E%3C/svg%3E" alt="二维码">
+            </div>
+            <p class="description">微信扫描二维码关注公众号，即可免费一件试穿<br>只需3分钟，即可体验到穿搭效果</p>
+            <button class="refresh-qr-button">🔄 刷新二维码</button>
+        </div>
+    </div>
+    
+    <div class="debug-info">
+        <h3>main-content 布局诊断</h3>
+        <div class="status" id="container-status">容器状态: 检查中...</div>
+        <div class="status" id="main-content-status">main-content: 检查中...</div>
+        <div class="status" id="logo-status">logo元素: 检查中...</div>
+        <div class="status" id="subtitle-status">subtitle元素: 检查中...</div>
+        <div class="status" id="layout-status">布局信息: 检查中...</div>
+    </div>
+
+    <script>
+        function checkLayout() {
+            console.log('=== main-content 布局诊断开始 ===');
+            
+            // 检查容器
+            const container = document.getElementById('welcome-page');
+            const containerStatus = document.getElementById('container-status');
+            if (container) {
+                const containerRect = container.getBoundingClientRect();
+                containerStatus.innerHTML = `容器状态: <span class="success">✅ ${containerRect.width}x${containerRect.height}</span>`;
+                console.log('容器尺寸:', containerRect);
+            } else {
+                containerStatus.innerHTML = `容器状态: <span class="error">❌ 未找到</span>`;
+            }
+            
+            // 检查main-content
+            const mainContent = document.querySelector('.main-content');
+            const mainContentStatus = document.getElementById('main-content-status');
+            if (mainContent) {
+                const styles = window.getComputedStyle(mainContent);
+                const rect = mainContent.getBoundingClientRect();
+                
+                const isVisible = styles.display !== 'none' && 
+                                styles.visibility !== 'hidden' && 
+                                rect.width > 0 && rect.height > 0;
+                
+                if (isVisible) {
+                    mainContentStatus.innerHTML = `main-content: <span class="success">✅ 显示正常 ${rect.width}x${rect.height}</span>`;
+                    console.log('main-content 状态:', {
+                        rect,
+                        styles: {
+                            display: styles.display,
+                            flexGrow: styles.flexGrow,
+                            flexShrink: styles.flexShrink,
+                            minHeight: styles.minHeight,
+                            padding: styles.padding
+                        }
+                    });
+                } else {
+                    mainContentStatus.innerHTML = `main-content: <span class="error">❌ 显示异常</span>`;
+                }
+            } else {
+                mainContentStatus.innerHTML = `main-content: <span class="error">❌ 元素未找到</span>`;
+            }
+            
+            // 检查logo
+            const logo = document.querySelector('.logo');
+            const logoStatus = document.getElementById('logo-status');
+            if (logo) {
+                const logoRect = logo.getBoundingClientRect();
+                const logoStyles = window.getComputedStyle(logo);
+                
+                const logoVisible = logoStyles.display !== 'none' && 
+                                  logoStyles.visibility !== 'hidden' && 
+                                  logoRect.width > 0 && logoRect.height > 0;
+                
+                if (logoVisible) {
+                    logoStatus.innerHTML = `logo元素: <span class="success">✅ 显示正常 pos:${Math.round(logoRect.top)},${Math.round(logoRect.left)}</span>`;
+                    console.log('logo 状态:', {
+                        rect: logoRect,
+                        text: logo.textContent,
+                        styles: {
+                            fontSize: logoStyles.fontSize,
+                            display: logoStyles.display,
+                            visibility: logoStyles.visibility,
+                            zIndex: logoStyles.zIndex
+                        }
+                    });
+                } else {
+                    logoStatus.innerHTML = `logo元素: <span class="error">❌ 显示异常</span>`;
+                }
+            } else {
+                logoStatus.innerHTML = `logo元素: <span class="error">❌ 元素未找到</span>`;
+            }
+            
+            // 检查subtitle
+            const subtitle = document.querySelector('.subtitle');
+            const subtitleStatus = document.getElementById('subtitle-status');
+            if (subtitle) {
+                const subtitleRect = subtitle.getBoundingClientRect();
+                const subtitleStyles = window.getComputedStyle(subtitle);
+                
+                const subtitleVisible = subtitleStyles.display !== 'none' && 
+                                      subtitleStyles.visibility !== 'hidden' && 
+                                      subtitleRect.width > 0 && subtitleRect.height > 0;
+                
+                if (subtitleVisible) {
+                    subtitleStatus.innerHTML = `subtitle元素: <span class="success">✅ 显示正常 pos:${Math.round(subtitleRect.top)},${Math.round(subtitleRect.left)}</span>`;
+                    console.log('subtitle 状态:', {
+                        rect: subtitleRect,
+                        text: subtitle.textContent,
+                        styles: {
+                            fontSize: subtitleStyles.fontSize,
+                            display: subtitleStyles.display,
+                            visibility: subtitleStyles.visibility
+                        }
+                    });
+                } else {
+                    subtitleStatus.innerHTML = `subtitle元素: <span class="error">❌ 显示异常</span>`;
+                }
+            } else {
+                subtitleStatus.innerHTML = `subtitle元素: <span class="error">❌ 元素未找到</span>`;
+            }
+            
+            // 布局信息总结
+            const layoutStatus = document.getElementById('layout-status');
+            if (mainContent && logo && subtitle) {
+                const mainRect = mainContent.getBoundingClientRect();
+                const logoRect = logo.getBoundingClientRect();
+                const subtitleRect = subtitle.getBoundingClientRect();
+                
+                const gap = subtitleRect.top - logoRect.bottom;
+                layoutStatus.innerHTML = `布局信息: <span class="success">✅ 元素间距:${Math.round(gap)}px</span>`;
+            } else {
+                layoutStatus.innerHTML = `布局信息: <span class="error">❌ 无法计算</span>`;
+            }
+            
+            console.log('=== main-content 布局诊断结束 ===');
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(checkLayout, 200);
+        });
+        
+        // 点击页面重新检查
+        document.addEventListener('click', function() {
+            setTimeout(checkLayout, 100);
+        });
+    </script>
+</body>
+</html>

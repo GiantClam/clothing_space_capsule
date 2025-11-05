@@ -1,0 +1,583 @@
+/* 服装选择页面样式 - 根据Figma Frame 6 & Frame 7 */
+
+#clothing-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+}
+
+#clothing-page.page.active {
+  display: block;
+}
+
+/* 页面背景 */
+#clothing-page .page-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  z-index: 0;
+}
+
+#clothing-page .page-background video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#clothing-page .page-background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+/* 顶部装饰条 - Group 10 (90, 201, 901x22) */
+.clothing-top-bar {
+  position: absolute;
+  width: 901px;
+  height: 22px;
+  left: 90px;
+  top: 201px;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+/* 性别选择tab容器 - Group 8 (89, 347, 901x108) */
+.gender-tabs {
+  position: absolute;
+  width: 901px;
+  height: 108px;
+  left: 89px;
+  top: 347px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 55px;
+  display: flex;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* 滑块背景（在tab下方） */
+.gender-tabs::before {
+  content: '';
+  position: absolute;
+  width: 468px;
+  height: 108px;
+  left: 0;
+  top: 0;
+  background: linear-gradient(-37deg, rgba(234, 234, 234, 1) 17%, rgba(41, 14, 243, 1) 91%);
+  border-radius: 55px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  transition: left 0.3s ease;
+  z-index: 1;
+}
+
+/* 男装激活时滑块移到右侧 */
+.gender-tabs.male-active::before {
+  left: 433px;
+}
+
+/* 性别按钮tab */
+.gender-tab {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 3;
+}
+
+/* 性别文字 */
+.gender-text {
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.4;
+  letter-spacing: 1em;
+  text-align: center;
+  z-index: 4;
+  position: relative;
+}
+
+/* 女装激活时的文字颜色 */
+.gender-tab.female.active .gender-text {
+  color: #000000;
+}
+
+/* 男装激活时的文字颜色 */
+.gender-tab.male.active .gender-text {
+  color: #0D0000;
+}
+
+/* 未激活状态的文字颜色 */
+.gender-tab.female:not(.active) .gender-text {
+  color: #000000;
+}
+
+.gender-tab.male:not(.active) .gender-text {
+  color: #070000;
+}
+
+/* 闪电图标 - lightning_ring (84x84) */
+.lightning-icon {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  background: url('data:image/svg+xml,<svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="42" cy="42" r="31.5" stroke="%23020715" stroke-width="2"/><path d="M49.5 24.5L38.5 45.5H47L34.5 66.5" stroke="%23010513" fill="%23010513"/></svg>') center/contain no-repeat;
+  z-index: 5;
+}
+
+/* 女装tab的闪电图标（左侧） */
+.gender-tab.female .lightning-icon.left {
+  left: 30px;
+  top: 10px;
+}
+
+/* 男装tab的闪电图标（z左侧） */
+.gender-tab.male .lightning-icon.left {
+  left: 30px;
+  top: 10px;
+}
+
+/* 上衣选择区域 - Group 6 (105, 583, 871x483) */
+.clothing-section.tops {
+  position: absolute;
+  width: 871px;
+  height: 483px;
+  left: 105px;
+  top: 583px;
+  background: linear-gradient(180deg, rgba(242, 242, 233, 0.1) 21%, rgba(239, 239, 201, 0.1) 65%);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.6);
+  border-radius: 50px;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.clothing-section.tops:hover {
+  transform: scale(1.02);
+}
+
+/* 下衣选择区域 - Group 7 (101, 1175, 871x483) */
+.clothing-section.bottoms {
+  position: absolute;
+  width: 871px;
+  height: 483px;
+  left: 101px;
+  top: 1175px;
+  background: linear-gradient(180deg, rgba(242, 242, 233, 0.1) 21%, rgba(239, 239, 201, 0.1) 65%);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.6);
+  border-radius: 50px;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.clothing-section.bottoms:hover {
+  transform: scale(1.02);
+}
+
+/* 区域头部容器 */
+.section-header-container {
+  position: absolute;
+  width: 361px;
+  height: 97px;
+  left: 44px;
+  top: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 图标圆形背景 - Ellipse 163/164 (22, 19, 92x92) */
+.section-icon-circle {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  left: 22px;
+  top: 19px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 上衣图标 */
+.clothing-section.tops .section-icon-circle {
+  background-image: url('../../img/top.png');
+}
+
+/* 下衣图标 */
+.clothing-section.bottoms .section-icon-circle {
+  background-image: url('../../img/bottom.png');
+}
+
+/* T恤图标 - T-shirt/Outline (39, 34, 58x58) */
+.section-icon.tshirt {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  left: 39px;
+  top: 34px;
+  background: url('data:image/svg+xml,<svg width="58" height="58" viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M48.33 4.83v19.98M48.33 4.83L39.52 24.51M9.81 20.68l30.65 26.76M26.48 0h12.68v6.55" stroke="%23FFFFFF" stroke-width="1.5" fill="none"/></svg>') center/contain no-repeat;
+}
+
+/* 裤子图标 (34, 34, 60x60) */
+.section-icon.pants {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  left: 34px;
+  top: 34px;
+  background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9.38 0.48h41.25v59.04M9.38 0.48v59.04" stroke="%23FFFFFF" stroke-width="1.5" fill="none"/></svg>') center/contain no-repeat;
+}
+
+/* 区域标题 */
+.section-header {
+  position: absolute;
+  width: 361px;
+  height: 97px;
+  left: 44px;
+  top: 17px;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.4;
+  letter-spacing: 0.6em;
+  text-align: center;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+/* 服装预览容器 - 根据Figma Frame 8-80设计 */
+.clothing-preview-container {
+  position: absolute;
+  width: 810px;
+  left: 31px;
+  top: 144px;
+  display: grid;
+  grid-template-columns: repeat(3, 180px);
+  grid-auto-rows: 180px;
+  gap: 25.5px 51px;
+  padding: 0;
+}
+
+.clothing-section.bottoms .clothing-preview-container {
+  left: 31px;
+  top: 144px;
+}
+
+/* 单个服装预览项 - 180x180px (根据Figma设计) */
+.clothing-item-preview {
+  width: 180px;
+  height: 180px;
+  background: #D9D9D9;
+  cursor: default;
+  transition: all 0.3s ease;
+  position: relative;
+  border: none;
+}
+
+.clothing-item-preview.selected {
+  border: 3px solid #01E1D6;
+}
+
+/* 服装图片占位符 */
+.clothing-item-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 底部按钮 - Group 5 (112, 1731, 871x59) */
+.clothing-bottom-buttons {
+  position: absolute;
+  width: 871px;
+  height: 59px;
+  left: 112px;
+  top: 60px; /* 与顶部保持60px距离 */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+/* 结束试衣按钮 - (0, 6, 259x48) */
+.btn-end-session {
+  position: relative;
+  width: 259px;
+  height: 48px;
+  top: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  border: none;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.4;
+  letter-spacing: 0.95em;
+  text-align: center;
+  color: #0E0000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-end-session:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 开始试衣按钮 - 居中按钮 */
+.btn-start-tryon {
+  position: relative;
+  width: 259px;
+  height: 48px;
+  top: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  border: none;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.4;
+  letter-spacing: 0.95em;
+  text-align: center;
+  color: #0E0000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-start-tryon:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 返回上一页按钮 */
+.btn-go-back {
+  position: relative;
+  width: 259px;
+  height: 48px;
+  top: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 36.5px;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  border: none;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.4;
+  letter-spacing: 0.9em;
+  text-align: center;
+  color: #0E0000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-go-back:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ========== 服装选择弹窗样式 - 根据Figma Frame 9 Group 6 ========== */
+
+#clothing-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  z-index: 1000;
+  pointer-events: auto;  /* 允许弹窗接收点击事件，实现点击外部关闭 */
+}
+
+#clothing-modal.show {
+  display: block !important;  /* 增加!important以覆盖inline style */
+}
+
+/* 弹窗背景 - 隐藏 */
+.modal-background {
+  display: none;
+}
+
+/* 弹窗顶部装饰条 - 隐藏 */
+.modal-top-bar {
+  display: none;
+}
+
+/* 弹窗性别选择tab - 隐藏 */
+.modal-gender-tabs {
+  display: none;
+}
+
+/* 弹窗服装区域 - Group 6 (105, 583, 871x1081) 根据Figma设计 */
+.modal-clothing-section {
+  position: absolute;
+  width: 871px;
+  height: 1081px;
+  left: 105px;
+  top: 583px;
+  background: linear-gradient(180deg, rgba(242, 242, 233, 0.1) 21%, rgba(239, 239, 201, 0.1) 65%);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.6);
+  border-radius: 50px;
+  z-index: 2;
+  pointer-events: auto;  /* 弹窗区域可以点击 */
+}
+
+/* 弹窗区域头部 */
+.modal-section-header-container {
+  position: absolute;
+  width: 361px;
+  height: 97px;
+  left: 44px;
+  top: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-section-icon-circle {
+  position: absolute;
+  width: 92px;
+  height: 92px;
+  left: 22px;
+  top: 19px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 弹窗图标 - 根据类别动态设置 */
+.modal-section-icon-circle.tops-icon {
+  background-image: url('../../img/top.png');
+}
+
+.modal-section-icon-circle.bottoms-icon {
+  background-image: url('../../img/bottom.png');
+}
+
+.modal-section-icon {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  left: 39px;
+  top: 34px;
+  background: url('data:image/svg+xml,<svg width="58" height="58" viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M48.33 4.83v19.98M48.33 4.83L39.52 24.51M9.81 20.68l30.65 26.76M26.48 0h12.68v6.55" stroke="%23FFFFFF" stroke-width="1.5" fill="none"/></svg>') center/contain no-repeat;
+}
+
+.modal-section-header {
+  position: absolute;
+  width: 361px;
+  height: 97px;
+  left: 44px;
+  top: 17px;
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.4;
+  letter-spacing: 0.6em;
+  text-align: center;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+/* 服装网格列表容器 - (31, 144, 810x904) 根据Figma设计 */
+.modal-clothing-grid {
+  position: absolute;
+  width: 810px;
+  height: 904px;  /* 根据Figma: Rectangle 111141373的高度 */
+  left: 31px;
+  top: 144px;
+  background: #FFFFFF;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: grid;
+  grid-template-columns: repeat(3, 180px);
+  grid-auto-rows: 180px;
+  gap: 25.5px 51px;
+  padding: 0;
+}
+
+/* 服装项 - (180x180) */
+.modal-clothing-item {
+  width: 180px;
+  height: 180px;
+  background: #D9D9D9;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.modal-clothing-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-clothing-item.selected {
+  border: 3px solid #01E1D6;
+}
+
+.modal-clothing-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 弹窗底部按钮 - 隐藏 */
+.modal-bottom-buttons {
+  display: none;
+}
+
+/* 滚动条样式 */
+.modal-clothing-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-clothing-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.modal-clothing-grid::-webkit-scrollbar-thumb {
+  background: rgba(1, 225, 214, 0.6);
+  border-radius: 4px;
+}
+
+.modal-clothing-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(1, 225, 214, 0.8);
+}

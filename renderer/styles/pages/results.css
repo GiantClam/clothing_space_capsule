@@ -1,0 +1,175 @@
+/* 试衣结果页面样式 - 根据Figma Frame 11 */
+#results-page {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+}
+
+#results-page.page.active {
+  display: block;
+}
+
+/* 背景图片 - 10月2日-封面 3 (0, 0, 1080x1920) */
+.results-bg-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+/* 结束试衣按钮容器 - Group 5 (723, 1652, 267x59) */
+.results-end-button-container {
+  position: absolute;
+  width: 267px;
+  height: 59px;
+  left: 723px;
+  top: 1652px;
+  z-index: 2;
+}
+
+/* 结束试衣按钮 - Rectangle 111141384 (8, 5, 259x48) */
+.results-end-button {
+  position: absolute;
+  width: 259px;
+  height: 48px;
+  left: 8px;
+  top: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.3);
+  border-radius: 36.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.4em;  /* 140% */
+  letter-spacing: 0.95em;  /* 95% */
+  text-align: center;
+  color: #0E0000;
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.results-end-button:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* 结果图片容器 - Rectangle 111141399 (89, 250, 901x1385) */
+.result-image-container {
+  position: absolute;
+  width: 901px;
+  height: 1385px;
+  left: 89px;
+  top: 250px;
+  background: #D9D9D9;
+  border-radius: 0px;  /* 设计稿中没有圆角 */
+  overflow: hidden;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;  /* 填充整个容器 */
+}
+
+/* 选择图片保存按钮容器 - Group 14 (89, 45, 901x81) */
+.results-save-button-container {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 89px;
+  top: 45px;
+  z-index: 2;
+}
+
+/* 选择图片保存按钮 - Rectangle 111141386 (0, 0, 901x81) */
+.results-save-button {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 0;
+  top: 0;
+  background: #003EDF;
+  border-radius: 86.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45em;  /* 145% */
+  letter-spacing: 1.35em;  /* 135% */
+  text-align: center;
+  color: #FFFFFF;
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.results-save-button:hover {
+  background: #00D4C9;
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 重新选择试衣按钮容器 - Group 15 (89, 143, 901x81) */
+.results-retry-button-container {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 89px;
+  top: 143px;
+  z-index: 2;
+}
+
+/* 重新选择试衣按钮 - Rectangle 111141386 (0, 0, 901x81) */
+.results-retry-button {
+  position: absolute;
+  width: 901px;
+  height: 81px;
+  left: 0;
+  top: 0;
+  background: #003EDF;
+  border-radius: 86.5px;
+  border: none;
+  
+  /* 文字样式 */
+  font-family: 'Microsoft Sans Serif', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.45em;  /* 145% */
+  letter-spacing: 1.35em;  /* 135% */
+  text-align: center;
+  color: #FFFFFF;
+  
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.results-retry-button:hover {
+  background: #00D4C9;
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 6px rgba(0, 0, 0, 0.3);
+}

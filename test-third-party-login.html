@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第三方登录测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #007bff;
+            margin-top: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .qr-display {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .qr-display img {
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.waiting {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        .status.success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+            margin: 15px 0;
+        }
+        .info-box strong {
+            color: #1976d2;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        .step {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #17a2b8;
+            border-radius: 4px;
+        }
+        .step.active {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #17a2b8;
+        }
+        .step.active h3 {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 第三方二维码登录测试</h1>
+        
+        <div class="info-box">
+            <strong>测试说明：</strong>本页面用于测试第三方二维码登录的完整流程，包括生成二维码、轮询登录状态等功能。
+        </div>
+
+        <h2>步骤 1: 设备认证</h2>
+        <div class="section">
+            <button onclick="authenticateDevice()" id="btn-auth">🔑 开始设备认证</button>
+            <div id="auth-status"></div>
+        </div>
+
+        <h2>步骤 2: 生成二维码</h2>
+        <div class="section">
+            <button onclick="generateQRCode()" id="btn-qr" disabled>📱 生成二维码</button>
+            <div class="qr-display" id="qr-display" style="display: none;">
+                <img id="qr-image" alt="二维码">
+                <p><strong>请使用第三方APP扫描二维码</strong></p>
+            </div>
+        </div>
+
+        <h2>步骤 3: 轮询登录状态</h2>
+        <div class="section">
+            <button onclick="startPolling()" id="btn-poll" disabled>🔄 开始轮询</button>
+            <button onclick="stopPolling()" id="btn-stop-poll" disabled>⏹️ 停止轮询</button>
+            <div id="poll-status"></div>
+        </div>
+
+        <h2>当前状态</h2>
+        <div class="section">
+            <div class="step" id="step1">
+                <h3>① 设备认证</h3>
+                <div id="step1-info">等待开始...</div>
+            </div>
+            <div class="step" id="step2">
+                <h3>② 二维码生成</h3>
+                <div id="step2-info">等待开始...</div>
+            </div>
+            <div class="step" id="step3">
+                <h3>③ 用户扫码</h3>
+                <div id="step3-info">等待开始...</div>
+            </div>
+            <div class="step" id="step4">
+                <h3>④ 登录完成</h3>
+                <div id="step4-info">等待开始...</div>
+            </div>
+        </div>
+
+        <h2>日志输出</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://clothing-api.0086studios.xyz';
+        let deviceToken = null;
+        let deviceId = null;
+        let pollingInterval = null;
+
+        // 日志输出
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // 更新步骤状态
+        function updateStep(stepNum, info, isActive = false) {
+            const step = document.getElementById(`step${stepNum}`);
+            const infoDiv = document.getElementById(`step${stepNum}-info`);
+            infoDiv.textContent = info;
+            if (isActive) {
+                step.classList.add('active');
+            }
+        }
+
+        // 1. 设备认证
+        async function authenticateDevice() {
+            try {
+                log('开始设备认证...');
+                updateStep(1, '正在认证...', true);
+                
+                const macAddress = 'AA:BB:CC:DD:EE:FF';
+                const deviceName = '测试设备-01';
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/device`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ macAddress, deviceName })
+                });
+                
+                const data = await response.json();
+                log('认证响应: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    deviceToken = data.token;
+                    deviceId = data.device.id;
+                    
+                    log(`设备认证成功！设备ID: ${deviceId}`, 'success');
+                    updateStep(1, `✅ 认证成功 (ID: ${deviceId})`, true);
+                    
+                    document.getElementById('auth-status').innerHTML = 
+                        `<div class="status success">✅ 设备认证成功<br>设备ID: ${deviceId}</div>`;
+                    
+                    document.getElementById('btn-qr').disabled = false;
+                } else {
+                    throw new Error(data.error || '认证失败');
+                }
+            } catch (error) {
+                log('设备认证失败: ' + error.message, 'error');
+                updateStep(1, '❌ 认证失败', false);
+                document.getElementById('auth-status').innerHTML = 
+                    `<div class="status error">❌ ${error.message}</div>`;
+            }
+        }
+
+        // 2. 生成二维码
+        async function generateQRCode() {
+            try {
+                log('开始生成二维码...');
+                updateStep(2, '正在生成...', true);
+                
+                const response = await fetch(`${API_BASE_URL}/api/auth/qrcode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        deviceId: deviceId,
+                        loginType: 'third_party'
+                    })
+                });
+                
+                const data = await response.json();
+                log('二维码响应: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    const qrDisplay = document.getElementById('qr-display');
+                    const qrImage = document.getElementById('qr-image');
+                    
+                    qrImage.src = data.qrCode.dataURL;
+                    qrDisplay.style.display = 'block';
+                    
+                    log('二维码生成成功！', 'success');
+                    updateStep(2, '✅ 二维码已生成', true);
+                    updateStep(3, '⏳ 等待用户扫码...', true);
+                    
+                    document.getElementById('btn-poll').disabled = false;
+                } else {
+                    throw new Error(data.error || '生成二维码失败');
+                }
+            } catch (error) {
+                log('生成二维码失败: ' + error.message, 'error');
+                updateStep(2, '❌ 生成失败', false);
+            }
+        }
+
+        // 3. 开始轮询
+        function startPolling() {
+            if (pollingInterval) {
+                log('轮询已在进行中', 'error');
+                return;
+            }
+            
+            log('开始轮询登录状态...');
+            document.getElementById('btn-poll').disabled = true;
+            document.getElementById('btn-stop-poll').disabled = false;
+            
+            let pollCount = 0;
+            const maxPolls = 100;
+            
+            pollingInterval = setInterval(async () => {
+                pollCount++;
+                log(`第 ${pollCount} 次轮询...`);
+                
+                if (pollCount > maxPolls) {
+                    stopPolling();
+                    log('轮询超时，二维码已过期', 'error');
+                    updateStep(3, '❌ 超时，请重新生成二维码', false);
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/auth/poll-login/${deviceId}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.isLoggedIn) {
+                        stopPolling();
+                        log('用户已登录！', 'success');
+                        log('Token: ' + data.user.token);
+                        log('Account: ' + data.user.account);
+                        
+                        updateStep(3, '✅ 用户已扫码', true);
+                        updateStep(4, `✅ 登录成功！Token: ${data.user.token}`, true);
+                        
+                        document.getElementById('poll-status').innerHTML = 
+                            `<div class="status success">
+                                ✅ 登录成功！<br>
+                                用户账号: ${data.user.account}<br>
+                                Token: ${data.user.token}<br>
+                                昵称: ${data.user.nickname || '未设置'}
+                            </div>`;
+                    } else {
+                        log('等待用户扫码...');
+                    }
+                } catch (error) {
+                    log('轮询请求失败: ' + error.message, 'error');
+                }
+            }, 3000);
+        }
+
+        // 停止轮询
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                log('已停止轮询');
+                document.getElementById('btn-poll').disabled = false;
+                document.getElementById('btn-stop-poll').disabled = true;
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            log('页面加载完成，准备测试第三方登录');
+            log('API地址: ' + API_BASE_URL);
+        };
+
+        // 页面卸载时清理
+        window.onbeforeunload = function() {
+            stopPolling();
+        };
+    </script>
+</body>
+</html>

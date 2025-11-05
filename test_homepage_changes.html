@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, initial-scale=1.0, user-scalable=no">
+    <title>首页修改测试 - 衣等舱</title>
+    <style>
+        body {
+            font-family: 'Microsoft Sans Serif', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(16.11deg, rgba(0, 0, 0, 0) 17.91%, rgba(0, 64, 57, 0.25) 35.82%, rgba(0, 92, 83, 0.361579) 52.22%, #00FFE6 85.14%), #000000;
+            color: white;
+            width: 1080px;
+            height: 1920px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 80px 60px;
+        }
+        
+        .logo {
+            width: 500px;
+            height: 160px;
+            background: #F5EDED;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: #000000;
+            margin-bottom: 40px;
+        }
+        
+        .subtitle {
+            font-size: 28px;
+            color: #F5EDED;
+            text-align: center;
+            letter-spacing: 6px;
+            margin-bottom: 80px;
+        }
+        
+        .wechat-qr {
+            width: 300px;
+            height: 300px;
+            background: #D9D9D9;
+            border: 5px solid #01FFE6;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 60px;
+        }
+        
+        .wechat-qr img {
+            width: 220px;
+            height: 220px;
+            border-radius: 12px;
+            background: white;
+        }
+        
+        .wechat-qr p {
+            font-size: 20px;
+            color: #F5EDED;
+            text-align: center;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .refresh-qr-button {
+            position: absolute;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 16px 32px;
+            font-size: 16px;
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+        }
+        
+        .refresh-qr-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateX(-50%) translateY(-2px);
+        }
+        
+        /* 右上角点击区域 */
+        .config-click-area {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .test-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #01FFE6;
+        }
+        
+        .test-info ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">衣等舱</div>
+        <div class="subtitle">AI试衣间</div>
+        
+        <div class="wechat-qr">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Crect width='220' height='220' fill='%23f0f0f0'/%3E%3Ctext x='110' y='110' text-anchor='middle' dy='0.3em' font-family='Arial' font-size='16' fill='%23666'%3E二维码位置%3C/text%3E%3C/svg%3E" alt="扫码关注公众号" id="wechat-qr-image">
+            <p>微信扫描二维码关注公众号，即可免费一件试穿<br>只需3分钟，即可体验到穿搭效果</p>
+            <button class="refresh-qr-button" onclick="handleRefresh()" id="refresh-qr-btn">
+                🔄 刷新二维码
+            </button>
+        </div>
+    </div>
+    
+    <!-- 右上角点击区域 -->
+    <div class="config-click-area" onclick="handleConfigClick()" id="config-click-area">
+        点击4次<br>打开配置
+    </div>
+    
+    <!-- 测试信息 -->
+    <div class="test-info">
+        <h3>首页修改测试</h3>
+        <ul>
+            <li>✅ 取消"立刻体验"按钮</li>
+            <li>✅ 删除"打开配置"按钮</li>
+            <li>✅ 二维码显示在wechat-qr-image位置</li>
+            <li>✅ 竖屏布局 1080*1920</li>
+            <li>✅ 所有组件居中</li>
+            <li>✅ 右上角连续点击4次打开配置</li>
+            <li>✅ 修复刷新二维码按钮</li>
+        </ul>
+        <p>点击次数: <span id="click-count">0</span></p>
+    </div>
+
+    <script>
+        let clickCount = 0;
+        let clickTimer = null;
+        
+        function handleConfigClick() {
+            clickCount++;
+            document.getElementById('click-count').textContent = clickCount;
+            
+            console.log('右上角点击，当前计数:', clickCount);
+            
+            // 清除之前的计时器
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+            }
+            
+            // 设置新的计时器，3秒后重置
+            clickTimer = setTimeout(() => {
+                console.log('连续点击超时，重置计数器');
+                clickCount = 0;
+                document.getElementById('click-count').textContent = clickCount;
+            }, 3000);
+            
+            // 检查是否达到4次点击
+            if (clickCount >= 4) {
+                console.log('连续点击4次，打开配置页面');
+                alert('🎉 连续点击4次成功！\n在实际应用中，这里会打开配置页面。');
+                
+                // 重置计数器
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                }
+                clickCount = 0;
+                document.getElementById('click-count').textContent = clickCount;
+            }
+        }
+        
+        function handleRefresh() {
+            console.log('刷新二维码按钮被点击');
+            alert('🔄 刷新二维码功能正常！\n在实际应用中，这里会调用refreshWechatQRCode()函数。');
+        }
+        
+        // 显示页面尺寸信息
+        console.log('页面尺寸:', {
+            body: {
+                width: document.body.offsetWidth,
+                height: document.body.offsetHeight
+            },
+            viewport: {
+                width: window.innerWidth,
+                height: window.innerHeight
+            }
+        });
+    </script>
+</body>
+</html>
